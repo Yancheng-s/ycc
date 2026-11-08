@@ -40,12 +40,30 @@ beforeEach(() => {
   mockReplies = [];
 });
 
-describe("runAgent", () => {
-  it("无工具调用时直接返回文本", async () => {
+describe("chat", () => {
+  it("单轮调用返回文本", async () => {
     mockReplies = [textReply("你好！")];
 
     const result = await askAI("hi");
 
     expect(result).toBe("你好！");
+  });
+
+  it("支持多轮对话并累积历史上下文", async () => {
+    mockReplies = [
+      textReply("你好，张三！"),
+      textReply("你的名字是张三。"),
+    ];
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    await askAI("我叫张三", history);
+    const secondReply = await askAI("我叫什么？", history);
+
+    expect(secondReply).toBe("你的名字是张三。");
+    expect(history.length).toBe(4);
+    expect(history[0]).toEqual({ role: "user", content: "我叫张三" });
+    expect(history[1]).toEqual({ role: "assistant", content: "你好，张三！" });
+    expect(history[2]).toEqual({ role: "user", content: "我叫什么？" });
+    expect(history[3]).toEqual({ role: "assistant", content: "你的名字是张三。" });
   });
 });

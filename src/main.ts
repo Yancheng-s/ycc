@@ -11,20 +11,19 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const MODEL = process.env.OPENAI_MODEL;
-
 export async function chat(
   userMessage: string,
   history: OpenAI.Chat.ChatCompletionMessageParam[] = []
 ): Promise<string> {
-  if (!MODEL) {
+  const model = process.env.OPENAI_MODEL;
+  if (!model) {
     throw new Error("缺少模型配置：请在环境变量中设置 OPENAI_MODEL");
   }
 
   history.push({ role: "user", content: userMessage });
 
   const res = await client.chat.completions.create({
-    model: MODEL,
+    model,
     messages: history,
   });
 

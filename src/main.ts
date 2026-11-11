@@ -11,9 +11,22 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export interface Tool {
+  name: string;
+  description: string;
+  parameters?: Record<string, unknown>;
+  execute: (args: Record<string, unknown>) => Promise<string> | string;
+}
+
+export interface ChatOptions {
+  tools?: Tool[];
+  maxTurns?: number;
+}
+
 export async function chat(
   userMessage: string,
-  history: OpenAI.Chat.ChatCompletionMessageParam[] = []
+  history: OpenAI.Chat.ChatCompletionMessageParam[] = [],
+  options: ChatOptions = {}
 ): Promise<string> {
   const model = process.env.OPENAI_MODEL;
   if (!model) {
@@ -22,18 +35,90 @@ export async function chat(
 
   history.push({ role: "user", content: userMessage });
 
-  const res = await client.chat.completions.create({
-    model,
-    messages: history,
-  });
-
-  const content = res.choices[0].message.content;
-  if (!content) {
-    return "";
+  let maxTurns = 5;
+  if (options.maxTurns !== undefined) {
+    maxTurns = options.maxTurns;
   }
 
-  history.push({ role: "assistant", content });
-  return content;
+  let toolList: Tool[] = [];
+  if (options.tools) {
+    toolList = options.tools;
+  }
+
+  let turns = 0;
+  while (turns < maxTurns) {
+    turns += 1;
+
+    const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+      model,
+      messages: history,
+    };
+
+    if (toolList.length > 0) {
+      params.tools = toolList.map((t) => {
+        const def: OpenAI.Chat.ChatCompletionTool = {
+          type: "function",
+          function: {
+            name: t.name,
+            description: t.description,
+          },
+        };
+        if (t.parameters) {
+          def.function.parameters = t.parameters;
+        }
+        return def;
+      });
+    }
+
+    const res = await client.chat.completions.create(params);
+    const message = res.choices[0].message;
+
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      const assistantMsg: OpenAI.Chat.ChatCompletionAssistantMessageParam = {
+        role: "assistant",
+      };
+      if (message.content !== null && message.content !== undefined) {
+        assistantMsg.content = message.content;
+      }
+      assistantMsg.tool_calls = message.tool_calls;
+      history.push(assistantMsg);
+
+      for (const call of message.tool_calls) {
+        const targetTool = toolList.find((t) => t.name === call.function.name);
+        let result = "";
+        if (!targetTool) {
+          result = `Error: Tool ${call.function.name} not found`;
+        } else {
+          let args: Record<string, unknown> = {};
+          if (call.function.arguments) {
+            try {
+              args = JSON.parse(call.function.arguments);
+            } catch {
+              args = {};
+            }
+          }
+          result = await targetTool.execute(args);
+        }
+
+        history.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: result,
+        });
+      }
+      continue;
+    }
+
+    const content = message.content;
+    if (!content) {
+      return "";
+    }
+
+    history.push({ role: "assistant", content });
+    return content;
+  }
+
+  return "已达到最大执行轮数上限";
 }
 
 const isEntry =

@@ -32,4 +32,7 @@
 - [x] **阶段 4：架构扁平拆分（CLI 模块化）**
   - 将终端交互与 REPL 循环抽离至 `src/cli.ts`。
   - `src/main.ts` 纯粹聚焦于核心 `chat` 函数与大模型通信，实现视图与内核解耦。
+- [x] **阶段 5：Agent 工具调用闭环（Tool Calling Loop）**
+  - 定义高内聚的 `Tool` 契约（声明参数 Schema 与本地 `execute` 函数）。
+  - 在 `src/main.ts` 中实现受控执行循环：支持 `tool_calls` 调度、结果构造成 `{ role: "tool" }` 回填上下文，以及 `maxTurns` 轮数保护。
 

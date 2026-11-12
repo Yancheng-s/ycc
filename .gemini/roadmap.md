@@ -35,4 +35,8 @@
 - [x] **阶段 5：Agent 工具调用闭环（Tool Calling Loop）**
   - 定义高内聚的 `Tool` 契约（声明参数 Schema 与本地 `execute` 函数）。
   - 在 `src/main.ts` 中实现受控执行循环：支持 `tool_calls` 调度、结果构造成 `{ role: "tool" }` 回填上下文，以及 `maxTurns` 轮数保护。
+- [x] **阶段 6：内置核心工具集与终端装载（Built-in Tools & CLI Mounting）**
+  - 新建独立单文件 `src/tools.ts`，交付 `get_current_time` 与 `run_command`（PowerShell 执行器）。
+  - 内置 10 秒超时熔断与 2000 字符截断保护，杜绝死锁与 Token 膨胀。
+  - 在 `src/cli.ts` 中完成默认挂载，让终端 Agent 真正具备动手执行能力。
 

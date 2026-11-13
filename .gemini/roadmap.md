@@ -39,4 +39,8 @@
   - 新建独立单文件 `src/tools.ts`，交付 `get_current_time` 与 `run_command`（PowerShell 执行器）。
   - 内置 10 秒超时熔断与 2000 字符截断保护，杜绝死锁与 Token 膨胀。
   - 在 `src/cli.ts` 中完成默认挂载，让终端 Agent 真正具备动手执行能力。
+- [x] **阶段 7：内核扁平拆分（Flat Modularization）**
+  - 将原单体 `src/main.ts` 依职责扁平拆解为：`src/types.ts`（类型契约）、`src/client.ts`（大模型客户端）、`src/agent.ts`（受控循环引擎）及 `src/main.ts`（极简启动入口）。
+  - 彻底剥离启动入口对核心调度的入侵，消除脆弱的 `isEntry` 判断。
+  - 全量 15 个契约测试保持 100% 变绿通过，零行为退化。
 

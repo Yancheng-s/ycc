@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import type OpenAI from "openai";
-import { chat } from "./main.js";
+import { chat } from "./agent.js";
 import { defaultTools } from "./tools.js";
 
 export async function runCli(): Promise<void> {

@@ -26,7 +26,8 @@ if (!process.env.OPENAI_API_KEY) {
   process.env.OPENAI_API_KEY = "mock-key";
 }
 
-import { chat as askAI, Tool } from "../src/main.js";
+import { chat as askAI } from "../src/agent.js";
+import type { Tool } from "../src/types.js";
 
 function textReply(content: string | null): OpenAI.Chat.ChatCompletion {
   return {
@@ -236,5 +237,19 @@ describe("chat", () => {
     });
 
     expect(result).toBe("已达到最大执行轮数上限");
+  });
+
+  it("开启 verbose 时正常执行并输出格式化日志", async () => {
+    mockReplies = [textReply("详细模式回复")];
+
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("你好", history, { verbose: true });
+
+    expect(result).toBe("详细模式回复");
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 });

@@ -27,7 +27,7 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 import { chat as askAI } from "../src/agent.js";
-import type { Tool } from "../src/types.js";
+import type { Tool, AgentHooks } from "../src/types.js";
 
 function textReply(content: string | null): OpenAI.Chat.ChatCompletion {
   return {
@@ -239,17 +239,60 @@ describe("chat", () => {
     expect(result).toBe("已达到最大执行轮数上限");
   });
 
-  it("开启 verbose 时正常执行并输出格式化日志", async () => {
-    mockReplies = [textReply("详细模式回复")];
+  it("触发生命周期 Hook 回调 (onLLMRequest 与 onLLMResponse)", async () => {
+    mockReplies = [textReply("hook测试回复")];
 
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const onRequest = vi.fn();
+    const onResponse = vi.fn();
+    const hooks: AgentHooks = {
+      onLLMRequest: onRequest,
+      onLLMResponse: onResponse,
+    };
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("你好", history, { verbose: true });
+    const result = await askAI("你好", history, { hooks });
 
-    expect(result).toBe("详细模式回复");
-    expect(consoleSpy).toHaveBeenCalled();
+    expect(result).toBe("hook测试回复");
+    expect(onRequest).toHaveBeenCalledTimes(1);
+    expect(onRequest).toHaveBeenCalledWith(1, expect.objectContaining({ model: process.env.OPENAI_MODEL }));
+    expect(onResponse).toHaveBeenCalledTimes(1);
+    expect(onResponse).toHaveBeenCalledWith(1, expect.objectContaining({ id: "chatcmpl-test" }));
+  });
 
-    consoleSpy.mockRestore();
+  it("执行工具时触发 onToolExecute Hook", async () => {
+    const testTool: Tool = {
+      name: "test_tool",
+      description: "测试工具",
+      execute: (args) => `executed with ${args.key}`,
+    };
+
+    mockReplies = [
+      toolCallReply([
+        {
+          id: "call-tool-1",
+          name: "test_tool",
+          arguments: JSON.stringify({ key: "val" }),
+        },
+      ]),
+      textReply("完成工具执行"),
+    ];
+
+    const onToolExecute = vi.fn();
+    const hooks: AgentHooks = { onToolExecute };
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("运行工具", history, {
+      tools: [testTool],
+      hooks,
+    });
+
+    expect(result).toBe("完成工具执行");
+    expect(onToolExecute).toHaveBeenCalledTimes(1);
+    expect(onToolExecute).toHaveBeenCalledWith(
+      "test_tool",
+      { key: "val" },
+      "executed with val",
+      "call-tool-1"
+    );
   });
 });

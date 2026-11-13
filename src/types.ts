@@ -1,3 +1,4 @@
+import type OpenAI from "openai";
 
 export interface Tool {
   name: string;
@@ -6,9 +7,22 @@ export interface Tool {
   execute: (args: Record<string, unknown>) => Promise<string> | string;
 }
 
+export interface AgentHooks {
+  onLLMRequest?: (
+    turn: number,
+    params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+  ) => void;
+  onLLMResponse?: (turn: number, response: OpenAI.Chat.ChatCompletion) => void;
+  onToolExecute?: (
+    name: string,
+    args: Record<string, unknown>,
+    result: string,
+    id: string
+  ) => void;
+}
+
 export interface ChatOptions {
   tools?: Tool[];
   maxTurns?: number;
-  verbose?: boolean;
+  hooks?: AgentHooks;
 }
-

@@ -43,4 +43,8 @@
   - 将原单体 `src/main.ts` 依职责扁平拆解为：`src/types.ts`（类型契约）、`src/client.ts`（大模型客户端）、`src/agent.ts`（受控循环引擎）及 `src/main.ts`（极简启动入口）。
   - 彻底剥离启动入口对核心调度的入侵，消除脆弱的 `isEntry` 判断。
   - 全量 15 个契约测试保持 100% 变绿通过，零行为退化。
-
+- [x] **阶段 8：生命周期 Hook 管道与打印解耦（Lifecycle Hooks & Observability）**
+  - 在 `src/types.ts` 定义 `AgentHooks` 生命周期契约（`onLLMRequest`、`onLLMResponse`、`onToolExecute`）。
+  - 纯净化 `src/agent.ts`，彻底消除所有 `console.log` 与 `verbose` 硬编码分支，完全由生命周期事件对外派发。
+  - 新建独立模块 `src/logger.ts` 提供开箱即用的 `consoleLogger` 订阅者，在 `src/cli.ts` 终端端装载。
+  - 同步重构与扩充自动化测试至 19 个（全量 100% 通过），实现内核零副作用与观测层的高内聚。

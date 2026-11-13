@@ -2,6 +2,7 @@ import { createInterface } from "node:readline/promises";
 import type OpenAI from "openai";
 import { chat } from "./agent.js";
 import { defaultTools } from "./tools.js";
+import { consoleLogger } from "./logger.js";
 
 export async function runCli(): Promise<void> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -23,7 +24,10 @@ export async function runCli(): Promise<void> {
       if (!input.trim()) {
         continue;
       }
-      const answer = await chat(input, history, { tools: defaultTools });
+      const answer = await chat(input, history, {
+        tools: defaultTools,
+        hooks: consoleLogger,
+      });
       console.log(`\nAI: ${answer}\n`);
     }
   } finally {

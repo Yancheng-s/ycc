@@ -24,10 +24,7 @@ export async function chat(
     toolList = options.tools;
   }
 
-  let verbose = false;
-  if (options.verbose !== undefined) {
-    verbose = options.verbose;
-  }
+  const hooks = options.hooks;
 
   let turns = 0;
   while (turns < maxTurns) {
@@ -54,19 +51,15 @@ export async function chat(
       });
     }
 
-    if (verbose) {
-      console.log(`\n──────────────────────────────────────────────────`);
-      console.log(`[第 ${turns} 轮 · 请求大模型]`);
-      console.log(`--- 发送完整请求参数 (Request Payload) ---`);
-      console.log(JSON.stringify(params, null, 2));
+    if (hooks && hooks.onLLMRequest) {
+      hooks.onLLMRequest(turns, params);
     }
 
     const res = await client.chat.completions.create(params);
     const message = res.choices[0].message;
 
-    if (verbose) {
-      console.log(`--- 接收完整响应报文 (Response Payload) ---`);
-      console.log(JSON.stringify(res, null, 2));
+    if (hooks && hooks.onLLMResponse) {
+      hooks.onLLMResponse(turns, res);
     }
 
     if (message.tool_calls && message.tool_calls.length > 0) {
@@ -82,25 +75,23 @@ export async function chat(
       for (const call of message.tool_calls) {
         const targetTool = toolList.find((t) => t.name === call.function.name);
         let result = "";
+        let args: Record<string, unknown> = {};
+        if (call.function.arguments) {
+          try {
+            args = JSON.parse(call.function.arguments);
+          } catch {
+            args = {};
+          }
+        }
+
         if (!targetTool) {
           result = `Error: Tool ${call.function.name} not found`;
         } else {
-          let args: Record<string, unknown> = {};
-          if (call.function.arguments) {
-            try {
-              args = JSON.parse(call.function.arguments);
-            } catch {
-              args = {};
-            }
-          }
           result = await targetTool.execute(args);
         }
 
-        if (verbose) {
-          console.log(`--- 工具执行详情 [${call.function.name}] ---`);
-          console.log(`调用 ID: ${call.id}`);
-          console.log(`输入参数: ${call.function.arguments}`);
-          console.log(`输出结果: ${result}`);
+        if (hooks && hooks.onToolExecute) {
+          hooks.onToolExecute(call.function.name, args, result, call.id);
         }
 
         history.push({
@@ -110,14 +101,7 @@ export async function chat(
         });
       }
 
-      if (verbose) {
-        console.log(`──────────────────────────────────────────────────\n`);
-      }
       continue;
-    }
-
-    if (verbose) {
-      console.log(`──────────────────────────────────────────────────\n`);
     }
 
     const content = message.content;
@@ -131,4 +115,3 @@ export async function chat(
 
   return "已达到最大执行轮数上限";
 }
-

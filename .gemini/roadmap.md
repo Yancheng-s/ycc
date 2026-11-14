@@ -63,16 +63,16 @@
   - 在 `src/cli.ts` 终端装载人机确认弹窗，针对 `run_command` 实施 `(y/n)` 授权放行；
   - 全量 5 个测试文件、30 个契约用例 100% 变绿通过；
   - 践行文档全生命周期治理：新增 `docs/07-human-in-the-loop-guard.md`，更新系统全景图与索引。
-
----
-
-### ⏳ 进行中 / 下一阶段
-
-- [ ] **阶段 11：Workspace 容器、沙箱隔离与原生文件工具（Workspace, Sandbox & File System Tools）**
+- [x] **阶段 11：Workspace 容器、沙箱隔离与原生文件工具（Workspace, Sandbox & File System Tools）**
   - [x] 架构设计与 RFC 规范落地：产出 `docs/08-workspace-sandbox-context.md`，刷新系统全景拓扑图；
-  - [ ] 在 `src/types.ts` 中确立 `Workspace` 核心契约与环境上下文；
-  - [ ] 实现沙箱路径解析与越界拦截守卫 `resolveInWorkspace`；
-  - [ ] 将 `src/tools.ts` 升级拆解为 `src/tools/` 模块化目录（`time.ts`, `shell.ts`, `fs.ts`, `index.ts`）；
-  - [ ] 交付三大安全原生文件工具：`read_file`、`write_file`、`list_directory`（受限沙箱保护与自愈引导）；
-  - [ ] 在 `src/cli.ts` 与内核中完成 Workspace 装配与环境提示词注入；
-  - [ ] 补齐契约单元测试，执行全量自动化门禁验证。
+  - [x] 在 `src/types.ts` 中确立 `Workspace` 核心契约与环境上下文；
+  - [x] 实现沙箱路径解析与越界拦截守卫 `src/sandbox.ts`（`resolveInWorkspace`）；
+  - [x] 将 `src/tools.ts` 升级拆解为 `src/tools/` 模块化目录（`time.ts`, `shell.ts`, `fs.ts`, `index.ts`）；
+  - [x] 交付三大安全原生文件工具：`read_file`、`write_file`、`list_directory`（受限沙箱保护与自愈引导）；
+  - [x] 实现 `createWorkspace` 工厂与环境上下文 System Prompt 装配（OS、根路径、安全与黑板机制）；
+  - [x] 内核 `src/agent.ts` 支持 Workspace 容器注入与首条 System 消息自动编译；
+  - [x] 终端 `src/cli.ts` 进入 Workspace 房间运行模式；
+  - [x] 完成架构纯粹主义重构：淘汰 ChatOptions，maxTurns、tools、hooks 100% 收敛至 Workspace；
+  - [x] 契约命名对齐：将 AgentHooks 全局统一重命名为 WorkspaceHooks，彻底消除主谓倒置遗留；
+  - [x] 智能根目录探测：实现 `findProjectRoot` 向上回溯算法与用户家目录天花板保护，避免深层子目录执行时上下文受限；
+  - [x] 8 个测试套件、62 个契约用例 100% 变绿通过（含 1 个跳过的 live API 用例）。

@@ -1,10 +1,10 @@
 import type OpenAI from "openai";
-import type { AgentHooks } from "./types.js";
+import type { WorkspaceHooks } from "./types.js";
 
 export class HookDispatcher {
-  private handlers: AgentHooks[];
+  private handlers: WorkspaceHooks[];
 
-  constructor(hooks?: AgentHooks | AgentHooks[]) {
+  constructor(hooks?: WorkspaceHooks | WorkspaceHooks[]) {
     if (!hooks) {
       this.handlers = [];
     } else if (Array.isArray(hooks)) {

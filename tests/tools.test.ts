@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { timeTool, runCommandTool, defaultTools } from "../src/tools.js";
+import { timeTool, runCommandTool, defaultTools } from "../src/tools/index.js";
 
 describe("timeTool", () => {
   it("正确返回包含年份的格式化时间字符串", async () => {
@@ -45,10 +45,13 @@ describe("runCommandTool", () => {
 
 describe("defaultTools", () => {
   it("默认工具列表导出完整", () => {
-    expect(defaultTools.length).toBe(2);
+    expect(defaultTools.length).toBe(5);
     expect(defaultTools.map((t) => t.name)).toEqual([
       "get_current_time",
       "run_command",
+      "read_file",
+      "write_file",
+      "list_directory",
     ]);
   });
 });

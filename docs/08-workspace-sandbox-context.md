@@ -59,12 +59,14 @@
 ### 1. Workspace 抽象契约
 ```ts
 export interface Workspace {
-  root: string;
-  tools: Tool[];
-  systemPrompt: string;
-  hooks?: AgentHooks[];
+  root: string;                       // 空间物理边界与沙箱基准
+  tools: Tool[];                      // 空间受控道具集合
+  systemPrompt: string;               // 空间世界观与环境感知提示词
+  hooks?: WorkspaceHooks | WorkspaceHooks[];  // 空间机关、安全门禁与监控探针
+  maxTurns?: number;                  // 空间行动步数配额 (默认 5)
 }
 ```
+* **消除中间层**：彻底拔除历史上的 `ChatOptions` 接口，调用签名演进为直接接收 `workspace?: Workspace`，所有能力、规则与配额 100% 收敛于 Workspace 容器内。
 
 ### 2. 沙箱防越界算法（Path Traversal Guard）
 任何文件操作在触碰操作系统底层之前，必须经由沙箱路径解析器进行合规校验：
@@ -91,6 +93,13 @@ export function resolveInWorkspace(workspaceRoot: string, targetPath: string): s
 - 授权工作空间根目录: c:\Users\...\project
 - 安全规则: 严禁尝试访问或修改工作空间之外的任何系统文件；优先在工作空间内完成分析与输出。
 ```
+
+### 4. 智能项目根探测与家目录天花板保护 (Project Root Discovery & Ceiling Guard)
+若直接依赖 `process.cwd()` 作为工作空间根目录，当开发者在深度嵌套子目录中启动 Agent 时，沙箱边界会被缩减在子目录内，无法触及项目根部的关键配置文件。
+系统在 `createWorkspace` 默认入口引入向上回溯算法 `findProjectRoot(startDir)`：
+* **向上探索标志**：逐级向上遍历祖先目录，寻找 `.git` 目录或 `package.json` 项目清单。
+* **家目录安全天花板 (Home Ceiling Guard)**：当向上回溯到达用户家目录（`os.homedir()`）且起始目录并非家目录时，强制截断并停止向上逃逸，防止用户家目录存在残留配置文件时意外将整个个人根目录作为工作空间。
+* **优雅退化**：遍历至文件系统顶层仍未命中时，安全退回给定的起始目录。
 
 ---
 

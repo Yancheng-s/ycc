@@ -1,8 +1,8 @@
-import type { AgentHooks } from "../types.js";
+import type { WorkspaceHooks } from "../types.js";
 
 export function createCliGuard(rl: {
   question: (query: string) => Promise<string>;
-}): AgentHooks {
+}): WorkspaceHooks {
   return {
     beforeToolExecute: async (name, args) => {
       if (name === "run_command") {

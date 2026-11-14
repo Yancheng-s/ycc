@@ -34,7 +34,8 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 import { chat as askAI } from "../src/agent.js";
-import type { Tool, AgentHooks } from "../src/types.js";
+import type { Tool, WorkspaceHooks, Workspace } from "../src/types.js";
+import { createWorkspace } from "../src/workspace.js";
 
 function textReply(content: string | null) {
   const chunks: OpenAI.Chat.ChatCompletionChunk[] = [];
@@ -270,9 +271,11 @@ describe("chat", () => {
     ];
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("北京天气怎么样？", history, {
-      tools: [weatherTool],
-    });
+    const result = await askAI(
+      "北京天气怎么样？",
+      history,
+      createWorkspace({ tools: [weatherTool], systemPrompt: "" })
+    );
 
     expect(result).toBe("北京今天是晴天，气温25度。");
     expect(history.length).toBe(4);
@@ -302,7 +305,11 @@ describe("chat", () => {
     ];
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("帮我算一下", history, { tools: [] });
+    const result = await askAI(
+      "帮我算一下",
+      history,
+      createWorkspace({ tools: [], systemPrompt: "" })
+    );
 
     expect(result).toBe("未找到该计算工具。");
     expect(history.length).toBe(4);
@@ -338,10 +345,11 @@ describe("chat", () => {
     };
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("一直调工具", history, {
-      tools: [loopTool],
-      maxTurns: 2,
-    });
+    const result = await askAI(
+      "一直调工具",
+      history,
+      createWorkspace({ tools: [loopTool], maxTurns: 2, systemPrompt: "" })
+    );
 
     expect(result).toBe("已达到最大执行轮数上限");
   });
@@ -351,13 +359,17 @@ describe("chat", () => {
 
     const onRequest = vi.fn();
     const onResponse = vi.fn();
-    const hooks: AgentHooks = {
+    const hooks: WorkspaceHooks = {
       onLLMRequest: onRequest,
       onLLMResponse: onResponse,
     };
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("你好", history, { hooks });
+    const result = await askAI(
+      "你好",
+      history,
+      createWorkspace({ hooks, systemPrompt: "" })
+    );
 
     expect(result).toBe("hook测试回复");
     expect(onRequest).toHaveBeenCalledTimes(1);
@@ -385,13 +397,14 @@ describe("chat", () => {
     ];
 
     const onToolExecute = vi.fn();
-    const hooks: AgentHooks = { onToolExecute };
+    const hooks: WorkspaceHooks = { onToolExecute };
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("运行工具", history, {
-      tools: [testTool],
-      hooks,
-    });
+    const result = await askAI(
+      "运行工具",
+      history,
+      createWorkspace({ tools: [testTool], hooks, systemPrompt: "" })
+    );
 
     expect(result).toBe("完成工具执行");
     expect(onToolExecute).toHaveBeenCalledTimes(1);
@@ -410,9 +423,14 @@ describe("chat", () => {
     const second = vi.fn();
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("你好", history, {
-      hooks: [{ onLLMResponse: first }, { onLLMResponse: second }],
-    });
+    const result = await askAI(
+      "你好",
+      history,
+      createWorkspace({
+        hooks: [{ onLLMResponse: first }, { onLLMResponse: second }],
+        systemPrompt: "",
+      })
+    );
 
     expect(result).toBe("多hook测试回复");
     expect(first).toHaveBeenCalledTimes(1);
@@ -424,9 +442,11 @@ describe("chat", () => {
 
     const onStreamChunk = vi.fn();
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("测试", history, {
-      hooks: { onStreamChunk },
-    });
+    const result = await askAI(
+      "测试",
+      history,
+      createWorkspace({ hooks: { onStreamChunk }, systemPrompt: "" })
+    );
 
     expect(result).toBe("流式测试");
     expect(onStreamChunk).toHaveBeenCalledTimes(5);
@@ -456,15 +476,20 @@ describe("chat", () => {
       textReply("操作被拒绝后的回复"),
     ];
 
-    const rejectGuard: AgentHooks = {
+    const rejectGuard: WorkspaceHooks = {
       beforeToolExecute: () => false,
     };
 
     const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    const result = await askAI("删库", history, {
-      tools: [dangerousTool],
-      hooks: rejectGuard,
-    });
+    const result = await askAI(
+      "删库",
+      history,
+      createWorkspace({
+        tools: [dangerousTool],
+        hooks: rejectGuard,
+        systemPrompt: "",
+      })
+    );
 
     expect(result).toBe("操作被拒绝后的回复");
     expect(dangerousTool.execute).not.toHaveBeenCalled();
@@ -475,5 +500,85 @@ describe("chat", () => {
       content:
         "Error: User or security guard rejected execution of tool delete_database",
     });
+  });
+
+  it("当提供 workspace 时自动在历史消息头部注入环境 System 提示词", async () => {
+    mockReplies = [textReply("已就绪")];
+
+    const mockWorkspace: Workspace = {
+      root: "/mock/workspace",
+      tools: [],
+      systemPrompt: "系统环境上下文提示词",
+    };
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("初始化", history, mockWorkspace);
+
+    expect(result).toBe("已就绪");
+    expect(history.length).toBe(3);
+    expect(history[0]).toEqual({
+      role: "system",
+      content: "系统环境上下文提示词",
+    });
+    expect(history[1]).toEqual({
+      role: "user",
+      content: "初始化",
+    });
+    expect(history[2]).toEqual({
+      role: "assistant",
+      content: "已就绪",
+    });
+  });
+
+  it("当历史消息已存在 system 角色时不再重复注入 workspace 提示词", async () => {
+    mockReplies = [textReply("收到")];
+
+    const mockWorkspace: Workspace = {
+      root: "/mock/workspace",
+      tools: [],
+      systemPrompt: "新的系统提示词",
+    };
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: "已有系统提示词" },
+    ];
+    await askAI("继续", history, mockWorkspace);
+
+    expect(history.length).toBe(3);
+    expect(history[0]).toEqual({
+      role: "system",
+      content: "已有系统提示词",
+    });
+  });
+
+  it("当未显式传递 tools 时自动使用 workspace 挂载的受控工具集", async () => {
+    const wsTool: Tool = {
+      name: "ws_tool",
+      description: "工作空间内工具",
+      execute: vi.fn().mockResolvedValue("工具执行成功"),
+    };
+
+    mockReplies = [
+      toolCallReply([
+        {
+          id: "call-ws-1",
+          name: "ws_tool",
+          arguments: "{}",
+        },
+      ]),
+      textReply("基于工具结果的总结"),
+    ];
+
+    const mockWorkspace: Workspace = {
+      root: "/mock/workspace",
+      tools: [wsTool],
+      systemPrompt: "系统提示词",
+    };
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("调用空间工具", history, mockWorkspace);
+
+    expect(result).toBe("基于工具结果的总结");
+    expect(wsTool.execute).toHaveBeenCalled();
   });
 });

@@ -1,31 +1,43 @@
 import type OpenAI from "openai";
 import { client } from "./client.js";
-import type { Tool, ChatOptions } from "./types.js";
+import type { Workspace } from "./types.js";
 import { HookDispatcher } from "./dispatcher.js";
+import { createWorkspace } from "./workspace.js";
 
 export async function chat(
   userMessage: string,
   history: OpenAI.Chat.ChatCompletionMessageParam[] = [],
-  options: ChatOptions = {}
+  workspace?: Workspace
 ): Promise<string> {
   const model = process.env.OPENAI_MODEL;
   if (!model) {
     throw new Error("缺少模型配置：请在环境变量中设置 OPENAI_MODEL");
   }
 
+  let ws = workspace;
+  if (!ws) {
+    ws = createWorkspace({ systemPrompt: "" });
+  }
+
+  if (ws.systemPrompt) {
+    const hasSystemMessage = history.some((msg) => msg.role === "system");
+    if (!hasSystemMessage) {
+      history.unshift({
+        role: "system",
+        content: ws.systemPrompt,
+      });
+    }
+  }
+
   history.push({ role: "user", content: userMessage });
 
   let maxTurns = 5;
-  if (options.maxTurns !== undefined) {
-    maxTurns = options.maxTurns;
+  if (ws.maxTurns !== undefined) {
+    maxTurns = ws.maxTurns;
   }
 
-  let toolList: Tool[] = [];
-  if (options.tools) {
-    toolList = options.tools;
-  }
-
-  const dispatcher = new HookDispatcher(options.hooks);
+  const toolList = ws.tools;
+  const dispatcher = new HookDispatcher(ws.hooks);
 
   let turns = 0;
   while (turns < maxTurns) {

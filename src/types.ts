@@ -7,7 +7,7 @@ export interface Tool {
   execute: (args: Record<string, unknown>) => Promise<string> | string;
 }
 
-export interface AgentHooks {
+export interface WorkspaceHooks {
   onLLMRequest?: (
     turn: number,
     params: OpenAI.Chat.ChatCompletionCreateParamsStreaming
@@ -26,8 +26,10 @@ export interface AgentHooks {
   ) => void;
 }
 
-export interface ChatOptions {
-  tools?: Tool[];
+export interface Workspace {
+  root: string;
+  tools: Tool[];
+  systemPrompt: string;
+  hooks?: WorkspaceHooks | WorkspaceHooks[];
   maxTurns?: number;
-  hooks?: AgentHooks | AgentHooks[];
 }

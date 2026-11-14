@@ -295,4 +295,20 @@ describe("chat", () => {
       "call-tool-1"
     );
   });
+
+  it("支持传入 Hook 数组实现多重监听广播", async () => {
+    mockReplies = [textReply("多hook测试回复")];
+
+    const first = vi.fn();
+    const second = vi.fn();
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("你好", history, {
+      hooks: [{ onLLMResponse: first }, { onLLMResponse: second }],
+    });
+
+    expect(result).toBe("多hook测试回复");
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
 });

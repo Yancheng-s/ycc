@@ -1,6 +1,7 @@
 import type OpenAI from "openai";
 import { client } from "./client.js";
 import type { Tool, ChatOptions } from "./types.js";
+import { HookDispatcher } from "./dispatcher.js";
 
 export async function chat(
   userMessage: string,
@@ -24,7 +25,7 @@ export async function chat(
     toolList = options.tools;
   }
 
-  const hooks = options.hooks;
+  const dispatcher = new HookDispatcher(options.hooks);
 
   let turns = 0;
   while (turns < maxTurns) {
@@ -51,16 +52,12 @@ export async function chat(
       });
     }
 
-    if (hooks && hooks.onLLMRequest) {
-      hooks.onLLMRequest(turns, params);
-    }
+    dispatcher.onLLMRequest(turns, params);
 
     const res = await client.chat.completions.create(params);
     const message = res.choices[0].message;
 
-    if (hooks && hooks.onLLMResponse) {
-      hooks.onLLMResponse(turns, res);
-    }
+    dispatcher.onLLMResponse(turns, res);
 
     if (message.tool_calls && message.tool_calls.length > 0) {
       const assistantMsg: OpenAI.Chat.ChatCompletionAssistantMessageParam = {
@@ -90,9 +87,7 @@ export async function chat(
           result = await targetTool.execute(args);
         }
 
-        if (hooks && hooks.onToolExecute) {
-          hooks.onToolExecute(call.function.name, args, result, call.id);
-        }
+        dispatcher.onToolExecute(call.function.name, args, result, call.id);
 
         history.push({
           role: "tool",

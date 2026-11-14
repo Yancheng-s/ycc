@@ -24,5 +24,5 @@ export interface AgentHooks {
 export interface ChatOptions {
   tools?: Tool[];
   maxTurns?: number;
-  hooks?: AgentHooks;
+  hooks?: AgentHooks | AgentHooks[];
 }

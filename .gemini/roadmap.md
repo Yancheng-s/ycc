@@ -50,8 +50,16 @@
   - 新建 `src/logger.ts` 提供开箱即用的终端格式化监听器 `consoleLogger`。
   - 全量 23 个测试用例保持 100% 变绿通过（含 `dispatcher.test.ts` 的广播验证），零回归退化。
 - [x] **阶段 9：流式传输与数据碎片组装（Streaming & Chunk Assembly）**
-  - 在 `src/types.ts` 扩充流式钩子 `onStreamChunk?: (chunk: string) => void`，分发器支持向多端即时广播数据片。
-  - 内核 `src/agent.ts` 升级为 `stream: true` 异步数据流迭代（`for await of stream`），实现文本实时抛出与工具 JSON 碎片后台静默组装双轨制。
-  - 终端 `consoleLogger` 接入实时流打字机输出（`process.stdout.write`）。
+  - 在 `src/types.ts` 扩充流式钩子 `onStreamChunk?: (chunk: OpenAI.Chat.ChatCompletionChunk) => void`，分发器支持向多端即时广播无损原始数据片。
+  - 内核 `src/agent.ts` 升级为 `stream: true` 异步数据流迭代（`for await of stream`），实现文本累加与工具 JSON 碎片后台静默组装双轨制。
+  - 终端 `consoleLogger` 接入原始数据片 JSON 打印。
   - 全面更新单元测试至 25 个（包含流式逐字符消费与工具参数拆分拼装验证，100% 通过）。
   - 严格践行文档资产全生命周期治理：新增 `docs/06-streaming-chunk-assembly.md`，更新系统全景图与索引。
+- [x] **阶段 10：插件物理隔离与人机交互安全守卫（Plugins Directory & Human-in-the-Loop）**
+  - 正式建立 `src/hooks/` 插件物理隔离目录，将外围扩展与核心引擎物理解耦；
+  - 迁入 `src/hooks/logger.ts`，新建 `src/hooks/guard.ts`，通过 `src/hooks/index.ts` 统一暴露出口；
+  - 在 `AgentHooks` 中实现 Level 3 守卫型契约 `beforeToolExecute`，在分发器中支持一票否决式短路拦截；
+  - 内核联动：被拦截操作安全回填 `{ role: "tool", content: "Error: User or security guard rejected..." }`，实现模型自愈决策；
+  - 在 `src/cli.ts` 终端装载人机确认弹窗，针对 `run_command` 实施 `(y/n)` 授权放行；
+  - 全量 5 个测试文件、30 个契约用例 100% 变绿通过；
+  - 践行文档全生命周期治理：新增 `docs/07-human-in-the-loop-guard.md`，更新系统全景图与索引。

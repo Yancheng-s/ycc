@@ -14,6 +14,10 @@ export interface AgentHooks {
   ) => void;
   onStreamChunk?: (chunk: OpenAI.Chat.ChatCompletionChunk) => void;
   onLLMResponse?: (turn: number, response: OpenAI.Chat.ChatCompletion) => void;
+  beforeToolExecute?: (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<boolean> | boolean;
   onToolExecute?: (
     name: string,
     args: Record<string, unknown>,

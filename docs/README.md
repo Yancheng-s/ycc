@@ -14,6 +14,7 @@
 | **04** | [生命周期 Hook 管道与分发器模式](./04-lifecycle-hooks-dispatcher.md) | 控制反转（IoC）、空对象模式（Null Object）、多重广播、内核纯净化 |
 | **05** | [编码规范约束与质量门禁](./05-code-quality-testing.md) | 零注释自解释原则、严禁 `??` 隐式兜底、三位一体自动化门禁 |
 | **06** | [流式传输与数据碎片组装](./06-streaming-chunk-assembly.md) | Server-Sent Events 流式迭代、文本打字机与工具 JSON 碎片双轨处理、多端解耦 |
+| **07** | [人机交互安全守卫与拦截型 Hook](./07-human-in-the-loop-guard.md) | Level 3 守卫型 Hook、一票否决权（beforeToolExecute）、短路拦截、src/hooks 物理隔离 |
 
 ---
 
@@ -31,9 +32,11 @@ flowchart TD
         Agent --> Memory[("MessageParam[] (上下文记忆栈)")]
     end
 
-    subgraph Observability ["可观测与流式展现层 (Observability)"]
-        Dispatcher -. 实时 Chunk 广播 .-> Logger["src/logger.ts (consoleLogger)"]
-        Dispatcher -. 实时推流广播 .-> Monitor["多前端扩展 (Web SSE / WebSocket / IDE)"]
+    subgraph Plugins ["src/hooks/ 插件扩展专区 (Plugins)"]
+        Dispatcher -. 实时 Chunk 广播 .-> Logger["src/hooks/logger.ts (consoleLogger)"]
+        Dispatcher == "beforeToolExecute (一票否决)" ==> Guard["src/hooks/guard.ts (cliGuard 人机确认)"]
+        Guard -. 提问确认 .-> User
+        Dispatcher -. 扩展广播 .-> Monitor["多前端扩展 (Web SSE / WebSocket)"]
     end
 
     subgraph Tools ["执行工具层 (Tool Execution)"]
@@ -44,5 +47,5 @@ flowchart TD
     end
 
     Client -->|stream: true| LLM["大模型服务端 (Spark / OpenAI)"]
-    Logger --> ConsoleOutput(["终端实时打字机输出"])
+    Logger --> ConsoleOutput(["终端实时报文与切片输出"])
 ```

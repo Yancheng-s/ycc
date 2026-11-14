@@ -94,4 +94,25 @@ describe("HookDispatcher", () => {
     expect(log1).toHaveBeenCalledWith(sampleChunk);
     expect(log2).toHaveBeenCalledWith(sampleChunk);
   });
+
+  it("beforeToolExecute 当守卫返回 false 时执行短路拦截", async () => {
+    const passGuard = vi.fn().mockResolvedValue(true);
+    const rejectGuard = vi.fn().mockResolvedValue(false);
+    const unreachedGuard = vi.fn().mockResolvedValue(true);
+
+    const dispatcher = new HookDispatcher([
+      { beforeToolExecute: passGuard },
+      { beforeToolExecute: rejectGuard },
+      { beforeToolExecute: unreachedGuard },
+    ]);
+
+    const allowed = await dispatcher.beforeToolExecute("run_command", {
+      command: "dir",
+    });
+
+    expect(allowed).toBe(false);
+    expect(passGuard).toHaveBeenCalled();
+    expect(rejectGuard).toHaveBeenCalled();
+    expect(unreachedGuard).not.toHaveBeenCalled();
+  });
 });

@@ -1,4 +1,4 @@
-import type { AgentHooks } from "./types.js";
+import type { AgentHooks } from "../types.js";
 
 export const consoleLogger: AgentHooks = {
   onLLMRequest: (turn, params) => {
@@ -6,11 +6,11 @@ export const consoleLogger: AgentHooks = {
     console.log(`[第 ${turn} 轮 · 请求大模型]`);
     console.log("--- 发送完整请求参数 (Request Payload) ---");
     console.log(JSON.stringify(params, null, 2));
-    console.log("--- 原始流式数据切片 (Raw Stream Chunks) ---");
+    // console.log("--- 原始流式数据切片 (Raw Stream Chunks) ---");
   },
-  onStreamChunk: (chunk) => {
-    console.log(JSON.stringify(chunk));
-  },
+  // onStreamChunk: (chunk) => {
+  //   console.log(JSON.stringify(chunk));
+  // },
   onLLMResponse: (_turn, res) => {
     console.log("--- 接收完整响应报文 (Response Payload) ---");
     console.log(JSON.stringify(res, null, 2));

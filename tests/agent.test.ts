@@ -437,4 +437,43 @@ describe("chat", () => {
       })
     );
   });
+
+  it("当 beforeToolExecute 守卫拒绝时阻止工具执行并回填拦截信息", async () => {
+    const dangerousTool: Tool = {
+      name: "delete_database",
+      description: "删除数据库",
+      execute: vi.fn(),
+    };
+
+    mockReplies = [
+      toolCallReply([
+        {
+          id: "call-del-1",
+          name: "delete_database",
+          arguments: "{}",
+        },
+      ]),
+      textReply("操作被拒绝后的回复"),
+    ];
+
+    const rejectGuard: AgentHooks = {
+      beforeToolExecute: () => false,
+    };
+
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("删库", history, {
+      tools: [dangerousTool],
+      hooks: rejectGuard,
+    });
+
+    expect(result).toBe("操作被拒绝后的回复");
+    expect(dangerousTool.execute).not.toHaveBeenCalled();
+    expect(history.length).toBe(4);
+    expect(history[2]).toEqual({
+      role: "tool",
+      tool_call_id: "call-del-1",
+      content:
+        "Error: User or security guard rejected execution of tool delete_database",
+    });
+  });
 });

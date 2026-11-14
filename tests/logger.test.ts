@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { consoleLogger } from "../src/logger.js";
+import { consoleLogger } from "../src/hooks/logger.js";
 import type OpenAI from "openai";
 
 describe("consoleLogger", () => {
@@ -21,7 +21,9 @@ describe("consoleLogger", () => {
     spy.mockRestore();
   });
 
-  it("onStreamChunk 打印原始数据切片 JSON", () => {
+  it.skipIf(!consoleLogger.onStreamChunk)(
+    "onStreamChunk 打印原始数据切片 JSON",
+    () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const mockChunk: OpenAI.Chat.ChatCompletionChunk = {

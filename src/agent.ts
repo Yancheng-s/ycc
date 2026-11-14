@@ -172,7 +172,15 @@ export async function chat(
         if (!targetTool) {
           result = `Error: Tool ${call.function.name} not found`;
         } else {
-          result = await targetTool.execute(args);
+          const allowed = await dispatcher.beforeToolExecute(
+            call.function.name,
+            args
+          );
+          if (!allowed) {
+            result = `Error: User or security guard rejected execution of tool ${call.function.name}`;
+          } else {
+            result = await targetTool.execute(args);
+          }
         }
 
         dispatcher.onToolExecute(call.function.name, args, result, call.id);

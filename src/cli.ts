@@ -2,7 +2,7 @@ import { createInterface } from "node:readline/promises";
 import type OpenAI from "openai";
 import { chat } from "./agent.js";
 import { defaultTools } from "./tools.js";
-import { consoleLogger } from "./logger.js";
+import { consoleLogger, createCliGuard } from "./hooks/index.js";
 
 export async function runCli(): Promise<void> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -12,6 +12,7 @@ export async function runCli(): Promise<void> {
   }
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const cliGuard = createCliGuard(rl);
   const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   console.log("进入多轮对话模式，输入 exit 退出。\n");
 
@@ -26,7 +27,7 @@ export async function runCli(): Promise<void> {
       }
       const answer = await chat(input, history, {
         tools: defaultTools,
-        hooks: consoleLogger,
+        hooks: [consoleLogger, cliGuard],
       });
       console.log(`\nAI: ${answer}\n`);
     }

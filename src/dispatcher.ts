@@ -44,6 +44,21 @@ export class HookDispatcher {
     }
   }
 
+  async beforeToolExecute(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<boolean> {
+    for (const h of this.handlers) {
+      if (h.beforeToolExecute) {
+        const allowed = await h.beforeToolExecute(name, args);
+        if (!allowed) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   onToolExecute(
     name: string,
     args: Record<string, unknown>,

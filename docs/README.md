@@ -15,6 +15,7 @@
 | **05** | [编码规范约束与质量门禁](./05-code-quality-testing.md) | 零注释自解释原则、严禁 `??` 隐式兜底、三位一体自动化门禁 |
 | **06** | [流式传输与数据碎片组装](./06-streaming-chunk-assembly.md) | Server-Sent Events 流式迭代、文本打字机与工具 JSON 碎片双轨处理、多端解耦 |
 | **07** | [人机交互安全守卫与拦截型 Hook](./07-human-in-the-loop-guard.md) | Level 3 守卫型 Hook、一票否决权（beforeToolExecute）、短路拦截、src/hooks 物理隔离 |
+| **08** | [Workspace 容器、沙箱隔离与环境上下文架构](./08-workspace-sandbox-context.md) | 控制反转（IoC）、MUD 房间范式、沙箱防越界守卫、环境即通信总线（黑板模式） |
 
 ---
 
@@ -22,14 +23,32 @@
 
 ```mermaid
 flowchart TD
-    User(["用户 (终端 CLI / API)"]) --> CLI["src/cli.ts (终端交互视图)"]
-    CLI --> Agent["src/agent.ts (受控调度引擎)"]
+    User(["用户 (终端 CLI / API)"]) --> CLI["src/cli.ts (终端交互入口)"]
+
+    subgraph WorkspaceContainer ["Workspace 容器 (Room / 能力沙箱与环境上下文)"]
+        Context["环境上下文装配 (System Context: OS / Root Path / Rules)"]
+        Sandbox["沙箱越界守卫 (resolveInWorkspace)"]
+        
+        subgraph ToolsGroup ["受控工具层 (Mounted Tools)"]
+            FSTools["文件系统工具 (read_file / write_file / list_dir)"]
+            ShellTool["终端工具 (run_command: PowerShell 宿主)"]
+            TimeTool["时间工具 (get_current_time)"]
+            Safety["安全熔断 (10s 超时 / 2000 字符截断)"]
+            ShellTool --> Safety
+        end
+    end
 
     subgraph Kernel ["Agent 调度内核 (Pure Streaming Engine)"]
-        Agent --> Dispatcher["src/dispatcher.ts (HookDispatcher)"]
-        Agent --> Client["src/client.ts (OpenAI 客户端)"]
-        Agent --> Assembler["内存碎片拼装器 (ToolCallsMap)"]
-        Agent --> Memory[("MessageParam[] (上下文记忆栈)")]
+        Agent["src/agent.ts (受控调度引擎)"]
+        Dispatcher["src/dispatcher.ts (HookDispatcher)"]
+        Client["src/client.ts (OpenAI 客户端)"]
+        Assembler["内存碎片拼装器 (ToolCallsMap)"]
+        Memory[("MessageParam[] (上下文记忆栈)")]
+
+        Agent --> Dispatcher
+        Agent --> Client
+        Agent --> Assembler
+        Agent --> Memory
     end
 
     subgraph Plugins ["src/hooks/ 插件扩展专区 (Plugins)"]
@@ -39,12 +58,11 @@ flowchart TD
         Dispatcher -. 扩展广播 .-> Monitor["多前端扩展 (Web SSE / WebSocket)"]
     end
 
-    subgraph Tools ["执行工具层 (Tool Execution)"]
-        Agent --> ToolRunner["src/tools.ts"]
-        ToolRunner --> TimeTool["get_current_time"]
-        ToolRunner --> ShellTool["run_command (PowerShell 宿主)"]
-        ShellTool --> Safety["安全熔断 (10s 超时 / 2000 字符截断)"]
-    end
+    CLI --> WorkspaceContainer
+    WorkspaceContainer -->|注入环境上下文与沙箱边界| Agent
+    Agent -->|工具调用调度| Sandbox
+    Sandbox -->|防越界合法校验| ToolsGroup
+    ToolsGroup --> TargetDisk[("工作区物理磁盘 (Active Workspace)")]
 
     Client -->|stream: true| LLM["大模型服务端 (Spark / OpenAI)"]
     Logger --> ConsoleOutput(["终端实时报文与切片输出"])

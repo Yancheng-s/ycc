@@ -63,3 +63,16 @@
   - 在 `src/cli.ts` 终端装载人机确认弹窗，针对 `run_command` 实施 `(y/n)` 授权放行；
   - 全量 5 个测试文件、30 个契约用例 100% 变绿通过；
   - 践行文档全生命周期治理：新增 `docs/07-human-in-the-loop-guard.md`，更新系统全景图与索引。
+
+---
+
+### ⏳ 进行中 / 下一阶段
+
+- [ ] **阶段 11：Workspace 容器、沙箱隔离与原生文件工具（Workspace, Sandbox & File System Tools）**
+  - [x] 架构设计与 RFC 规范落地：产出 `docs/08-workspace-sandbox-context.md`，刷新系统全景拓扑图；
+  - [ ] 在 `src/types.ts` 中确立 `Workspace` 核心契约与环境上下文；
+  - [ ] 实现沙箱路径解析与越界拦截守卫 `resolveInWorkspace`；
+  - [ ] 将 `src/tools.ts` 升级拆解为 `src/tools/` 模块化目录（`time.ts`, `shell.ts`, `fs.ts`, `index.ts`）；
+  - [ ] 交付三大安全原生文件工具：`read_file`、`write_file`、`list_directory`（受限沙箱保护与自愈引导）；
+  - [ ] 在 `src/cli.ts` 与内核中完成 Workspace 装配与环境提示词注入；
+  - [ ] 补齐契约单元测试，执行全量自动化门禁验证。

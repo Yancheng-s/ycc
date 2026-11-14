@@ -49,3 +49,9 @@
   - 重构 `src/agent.ts`：内核对 Hook 的触发彻底消除全部 `if` 判断，实现 0 分支盲调（`dispatcher.onLLMRequest(...)` 等）。
   - 新建 `src/logger.ts` 提供开箱即用的终端格式化监听器 `consoleLogger`。
   - 全量 23 个测试用例保持 100% 变绿通过（含 `dispatcher.test.ts` 的广播验证），零回归退化。
+- [x] **阶段 9：流式传输与数据碎片组装（Streaming & Chunk Assembly）**
+  - 在 `src/types.ts` 扩充流式钩子 `onStreamChunk?: (chunk: string) => void`，分发器支持向多端即时广播数据片。
+  - 内核 `src/agent.ts` 升级为 `stream: true` 异步数据流迭代（`for await of stream`），实现文本实时抛出与工具 JSON 碎片后台静默组装双轨制。
+  - 终端 `consoleLogger` 接入实时流打字机输出（`process.stdout.write`）。
+  - 全面更新单元测试至 25 个（包含流式逐字符消费与工具参数拆分拼装验证，100% 通过）。
+  - 严格践行文档资产全生命周期治理：新增 `docs/06-streaming-chunk-assembly.md`，更新系统全景图与索引。

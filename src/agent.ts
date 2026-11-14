@@ -31,9 +31,10 @@ export async function chat(
   while (turns < maxTurns) {
     turns += 1;
 
-    const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+    const params: OpenAI.Chat.ChatCompletionCreateParamsStreaming = {
       model,
       messages: history,
+      stream: true,
     };
 
     if (toolList.length > 0) {
@@ -54,22 +55,109 @@ export async function chat(
 
     dispatcher.onLLMRequest(turns, params);
 
-    const res = await client.chat.completions.create(params);
-    const message = res.choices[0].message;
+    const stream = await client.chat.completions.create(params);
 
-    dispatcher.onLLMResponse(turns, res);
+    let accumulatedContent = "";
+    const toolCallsMap: Map<number, OpenAI.Chat.ChatCompletionMessageToolCall> = new Map();
+    let streamId = "";
+    let streamModel = "";
+    let streamCreated = 0;
 
-    if (message.tool_calls && message.tool_calls.length > 0) {
+    for await (const chunk of stream) {
+      dispatcher.onStreamChunk(chunk);
+
+      if (chunk.id) {
+        streamId = chunk.id;
+      }
+      if (chunk.model) {
+        streamModel = chunk.model;
+      }
+      if (chunk.created) {
+        streamCreated = chunk.created;
+      }
+
+      const choice = chunk.choices[0];
+      if (!choice) {
+        continue;
+      }
+
+      const delta = choice.delta;
+      if (delta.content) {
+        accumulatedContent += delta.content;
+      }
+
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const index = tc.index;
+          let current = toolCallsMap.get(index);
+          if (!current) {
+            current = {
+              id: tc.id || "",
+              type: "function",
+              function: {
+                name: tc.function && tc.function.name ? tc.function.name : "",
+                arguments: tc.function && tc.function.arguments ? tc.function.arguments : "",
+              },
+            };
+            toolCallsMap.set(index, current);
+          } else {
+            if (tc.id) {
+              current.id += tc.id;
+            }
+            if (tc.function) {
+              if (tc.function.name) {
+                current.function.name += tc.function.name;
+              }
+              if (tc.function.arguments) {
+                current.function.arguments += tc.function.arguments;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const assembledToolCalls = Array.from(toolCallsMap.values());
+    const hasToolCalls = assembledToolCalls.length > 0;
+
+    const assembledResponse: OpenAI.Chat.ChatCompletion = {
+      id: streamId || "chatcmpl-stream",
+      object: "chat.completion",
+      created: streamCreated || Math.floor(Date.now() / 1000),
+      model: streamModel || model,
+      choices: [
+        {
+          index: 0,
+          finish_reason: hasToolCalls ? "tool_calls" : "stop",
+          message: {
+            role: "assistant",
+            content: accumulatedContent ? accumulatedContent : null,
+            tool_calls: hasToolCalls ? assembledToolCalls : undefined,
+            refusal: null,
+          },
+          logprobs: null,
+        },
+      ],
+      usage: {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      },
+    };
+
+    dispatcher.onLLMResponse(turns, assembledResponse);
+
+    if (hasToolCalls) {
       const assistantMsg: OpenAI.Chat.ChatCompletionAssistantMessageParam = {
         role: "assistant",
       };
-      if (message.content !== null && message.content !== undefined) {
-        assistantMsg.content = message.content;
+      if (accumulatedContent) {
+        assistantMsg.content = accumulatedContent;
       }
-      assistantMsg.tool_calls = message.tool_calls;
+      assistantMsg.tool_calls = assembledToolCalls;
       history.push(assistantMsg);
 
-      for (const call of message.tool_calls) {
+      for (const call of assembledToolCalls) {
         const targetTool = toolList.find((t) => t.name === call.function.name);
         let result = "";
         let args: Record<string, unknown> = {};
@@ -99,13 +187,12 @@ export async function chat(
       continue;
     }
 
-    const content = message.content;
-    if (!content) {
+    if (!accumulatedContent) {
       return "";
     }
 
-    history.push({ role: "assistant", content });
-    return content;
+    history.push({ role: "assistant", content: accumulatedContent });
+    return accumulatedContent;
   }
 
   return "已达到最大执行轮数上限";

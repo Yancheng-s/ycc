@@ -6,9 +6,10 @@ describe("consoleLogger", () => {
   it("onLLMRequest 格式化输出轮数和请求参数", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+    const params: OpenAI.Chat.ChatCompletionCreateParamsStreaming = {
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: "test" }],
+      stream: true,
     };
 
     if (consoleLogger.onLLMRequest) {
@@ -17,6 +18,32 @@ describe("consoleLogger", () => {
 
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("第 1 轮 · 请求大模型"));
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("gpt-4o-mini"));
+    spy.mockRestore();
+  });
+
+  it("onStreamChunk 打印原始数据切片 JSON", () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const mockChunk: OpenAI.Chat.ChatCompletionChunk = {
+      id: "chunk-1",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: { content: "片段" },
+          finish_reason: null,
+        },
+      ],
+    };
+
+    if (consoleLogger.onStreamChunk) {
+      consoleLogger.onStreamChunk(mockChunk);
+    }
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("chunk-1"));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("片段"));
     spy.mockRestore();
   });
 
@@ -66,4 +93,3 @@ describe("consoleLogger", () => {
     spy.mockRestore();
   });
 });
-

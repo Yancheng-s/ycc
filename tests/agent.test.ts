@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import OpenAI from "openai";
 
-let mockReplies: (OpenAI.Chat.ChatCompletion | Error)[] = [];
+type MockReplyItem =
+  | { [Symbol.asyncIterator]: () => AsyncIterator<OpenAI.Chat.ChatCompletionChunk> }
+  | Error;
+
+let mockReplies: MockReplyItem[] = [];
 
 vi.mock("openai", () => ({
   default: class MockOpenAI {
@@ -9,6 +13,9 @@ vi.mock("openai", () => ({
       completions: {
         create: async () => {
           const item = mockReplies.shift();
+          if (!item) {
+            throw new Error("No mock reply available");
+          }
           if (item instanceof Error) {
             throw item;
           }
@@ -29,53 +36,153 @@ if (!process.env.OPENAI_API_KEY) {
 import { chat as askAI } from "../src/agent.js";
 import type { Tool, AgentHooks } from "../src/types.js";
 
-function textReply(content: string | null): OpenAI.Chat.ChatCompletion {
+function textReply(content: string | null) {
+  const chunks: OpenAI.Chat.ChatCompletionChunk[] = [];
+  if (content === null) {
+    chunks.push({
+      id: "chatcmpl-test",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: { role: "assistant", content: null },
+          finish_reason: "stop",
+        },
+      ],
+    });
+  } else {
+    for (const char of content) {
+      chunks.push({
+        id: "chatcmpl-test",
+        object: "chat.completion.chunk",
+        created: 0,
+        model: "gpt-4o-mini",
+        choices: [
+          {
+            index: 0,
+            delta: { content: char },
+            finish_reason: null,
+          },
+        ],
+      });
+    }
+    chunks.push({
+      id: "chatcmpl-test",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: {},
+          finish_reason: "stop",
+        },
+      ],
+    });
+  }
+
   return {
-    id: "chatcmpl-test",
-    object: "chat.completion",
-    created: 0,
-    model: "gpt-4o-mini",
-    choices: [
-      {
-        index: 0,
-        finish_reason: "stop",
-        message: { role: "assistant", content, refusal: null, tool_calls: undefined },
-        logprobs: null,
-      },
-    ],
-    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    async *[Symbol.asyncIterator]() {
+      for (const c of chunks) {
+        yield c;
+      }
+    },
   };
 }
 
-function toolCallReply(
-  calls: { id: string; name: string; arguments: string }[]
-): OpenAI.Chat.ChatCompletion {
-  return {
+function toolCallReply(calls: { id: string; name: string; arguments: string }[]) {
+  const chunks: OpenAI.Chat.ChatCompletionChunk[] = [];
+  for (let i = 0; i < calls.length; i++) {
+    const c = calls[i];
+    chunks.push({
+      id: "chatcmpl-test",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: {
+            role: "assistant",
+            tool_calls: [
+              {
+                index: i,
+                id: c.id,
+                type: "function",
+                function: { name: c.name, arguments: "" },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    });
+
+    const half = Math.floor(c.arguments.length / 2);
+    chunks.push({
+      id: "chatcmpl-test",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                index: i,
+                function: { arguments: c.arguments.slice(0, half) },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    });
+    chunks.push({
+      id: "chatcmpl-test",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: "gpt-4o-mini",
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                index: i,
+                function: { arguments: c.arguments.slice(half) },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    });
+  }
+
+  chunks.push({
     id: "chatcmpl-test",
-    object: "chat.completion",
+    object: "chat.completion.chunk",
     created: 0,
     model: "gpt-4o-mini",
     choices: [
       {
         index: 0,
+        delta: {},
         finish_reason: "tool_calls",
-        message: {
-          role: "assistant",
-          content: null,
-          refusal: null,
-          tool_calls: calls.map((c) => ({
-            id: c.id,
-            type: "function",
-            function: {
-              name: c.name,
-              arguments: c.arguments,
-            },
-          })),
-        },
-        logprobs: null,
       },
     ],
-    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  });
+
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const c of chunks) {
+        yield c;
+      }
+    },
   };
 }
 
@@ -254,7 +361,7 @@ describe("chat", () => {
 
     expect(result).toBe("hook测试回复");
     expect(onRequest).toHaveBeenCalledTimes(1);
-    expect(onRequest).toHaveBeenCalledWith(1, expect.objectContaining({ model: process.env.OPENAI_MODEL }));
+    expect(onRequest).toHaveBeenCalledWith(1, expect.objectContaining({ model: process.env.OPENAI_MODEL, stream: true }));
     expect(onResponse).toHaveBeenCalledTimes(1);
     expect(onResponse).toHaveBeenCalledWith(1, expect.objectContaining({ id: "chatcmpl-test" }));
   });
@@ -310,5 +417,24 @@ describe("chat", () => {
     expect(result).toBe("多hook测试回复");
     expect(first).toHaveBeenCalledTimes(1);
     expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("流式生成过程中实时触发 onStreamChunk 回调", async () => {
+    mockReplies = [textReply("流式测试")];
+
+    const onStreamChunk = vi.fn();
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const result = await askAI("测试", history, {
+      hooks: { onStreamChunk },
+    });
+
+    expect(result).toBe("流式测试");
+    expect(onStreamChunk).toHaveBeenCalledTimes(5);
+    expect(onStreamChunk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "chatcmpl-test",
+        choices: expect.any(Array),
+      })
+    );
   });
 });

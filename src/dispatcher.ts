@@ -16,11 +16,19 @@ export class HookDispatcher {
 
   onLLMRequest(
     turn: number,
-    params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+    params: OpenAI.Chat.ChatCompletionCreateParamsStreaming
   ): void {
     for (const h of this.handlers) {
       if (h.onLLMRequest) {
         h.onLLMRequest(turn, params);
+      }
+    }
+  }
+
+  onStreamChunk(chunk: OpenAI.Chat.ChatCompletionChunk): void {
+    for (const h of this.handlers) {
+      if (h.onStreamChunk) {
+        h.onStreamChunk(chunk);
       }
     }
   }

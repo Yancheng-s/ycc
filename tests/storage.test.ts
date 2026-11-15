@@ -4,18 +4,20 @@ import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ensureGlobalStorage,
-  ensureWorkspaceStorage,
-  getProjectFingerprint,
-  getWorkspaceStorageDir,
   getYccHome,
-  listSessions,
   loadGlobalConfig,
-  loadSession,
   normalizeBaseURL,
   resolveAppConfig,
   saveGlobalConfig,
+} from "../src/config.js";
+import {
+  ensureWorkspaceStorage,
+  getProjectFingerprint,
+  getWorkspaceStorageDir,
+  listSessions,
+  loadSession,
   saveSession,
-} from "../src/storage.js";
+} from "../src/workspace/storage.js";
 
 describe("storage", () => {
   let tempHome: string;

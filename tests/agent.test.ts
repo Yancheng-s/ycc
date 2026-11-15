@@ -32,8 +32,8 @@ let mockAppConfig = {
   model: "gpt-4o-mini" as string | undefined,
 };
 
-vi.mock("../src/storage.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/storage.js")>();
+vi.mock("../src/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/config.js")>();
   return {
     ...actual,
     resolveAppConfig: () => mockAppConfig,
@@ -42,7 +42,7 @@ vi.mock("../src/storage.js", async (importOriginal) => {
 
 import { chat as askAI } from "../src/agent.js";
 import type { Tool, WorkspaceHooks, Workspace } from "../src/types.js";
-import { createWorkspace } from "../src/workspace.js";
+import { createWorkspace } from "../src/workspace/index.js";
 
 function textReply(content: string | null) {
   const chunks: OpenAI.Chat.ChatCompletionChunk[] = [];

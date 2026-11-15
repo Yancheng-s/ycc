@@ -88,4 +88,5 @@
   - [x] 全局命令分发与打包：配置 `package.json` 的 `bin: { ycc: "./dist/main.js" }`，支持全局 `npm link` 与生产打包编译（`tsconfig.build.json`）；
   - [x] 交互式配置向导：实现 `ycc init` 交互式覆盖配置与 `ycc up` / `ycc run` 自动预检、缺失时内联向导并无缝直接启动；
   - [x] 彻底摒弃 `process.env` 与 `.env`：彻底删除工程本地环境文件，移除代码中所有读取或判断 `process.env.OPENAI_*` 的逻辑，全面以用户目录下的中央配置文件 `~/.ycc/config.json` 为唯一数据源；
+  - [x] 领域高内聚收敛重构：拆解平铺的 `storage.ts`、`workspace.ts` 与 `sandbox.ts`，独立出管理全局凭证的 `src/config.ts`，并将沙箱（`sandbox.ts`）、上下文工程（`context.ts`）、专属抽屉（`storage.ts`）与装配工厂（`index.ts`）统一收敛至 `src/workspace/` 领域目录，全量 73 个测试用例 100% 变绿通过；
   - [x] 践行文档全生命周期治理：新增 `docs/09-workspace-global-storage.md`，更新知识库索引与系统全景图。

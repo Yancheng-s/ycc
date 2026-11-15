@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { normalizeBaseURL, resolveAppConfig } from "./storage.js";
+import { normalizeBaseURL, resolveAppConfig } from "./config.js";
 
 let instance: OpenAI | undefined;
 

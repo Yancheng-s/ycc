@@ -61,13 +61,13 @@ export interface Workspace {
 ```
 
 ### 2. 会话持久化与恢复（Session Storage API）
-[src/storage.ts](file:///c:/Users/29784/Desktop/ycc/src/storage.ts) 提供了纯净且健壮的异步持久化 API：
+[src/workspace/storage.ts](file:///c:/Users/29784/Desktop/ycc/src/workspace/storage.ts) 提供了纯净且健壮的异步持久化 API：
 * `saveSession(storageDir, sessionId, history)`：原子化保存对话历史，记录更新时间戳；
 * `loadSession(storageDir, sessionId)`：加载历史会话，若不存在则优雅返回 `null`；
 * `listSessions(storageDir)`：检索该工程专属抽屉下的所有历史会话列表。
 
 ### 3. 全局配置中心与纯粹单一数据源（Global Config as Single Source of Truth）
-系统全面走用户目录下的配置文件 `~/.ycc/config.json` 作为唯一信任源，不再判断或回退任何 `process.env`（`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`），彻底杜绝环境污染与配置飘移：
+[src/config.ts](file:///c:/Users/29784/Desktop/ycc/src/config.ts) 全面走用户目录下的配置文件 `~/.ycc/config.json` 作为唯一信任源，不再判断或回退任何 `process.env`（`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`），彻底杜绝环境污染与配置飘移：
 * `loadGlobalConfig()` / `saveGlobalConfig(config)`：原子化读取与保存全局中央配置；
 * `resolveAppConfig()`：直接读取并规格化 `~/.ycc/config.json` 中的配置（自动清洗 `baseURL` 多余后缀），为推理引擎与客户端提供确定性的凭证输入；
 * 所有工程无需任何本地点号文件，亦无需在系统环境中反复配置全局环境变量，一次 `ycc init`，全局永久生效。
@@ -98,7 +98,7 @@ flowchart TD
     subgraph Runtime ["Harness 运行时"]
         CLI["src/cli.ts"]
         WS["createWorkspace()"]
-        Storage["src/storage.ts (ensureWorkspaceStorage)"]
+        Storage["src/workspace/storage.ts (ensureWorkspaceStorage)"]
     end
 
     CLI -->|1. 启动| WS
@@ -116,7 +116,7 @@ sequenceDiagram
     actor User as 用户
     participant CLI as 终端 (src/cli.ts)
     participant Agent as 推理内核 (src/agent.ts)
-    participant Storage as 存储模块 (src/storage.ts)
+    participant Storage as 存储模块 (src/workspace/storage.ts)
     participant Disk as 全局磁盘 (~/.ycc)
 
     User->>CLI: 输入问题并执行任务

@@ -2,8 +2,8 @@ import type OpenAI from "openai";
 import { client } from "./client.js";
 import type { Workspace } from "./types.js";
 import { HookDispatcher } from "./dispatcher.js";
-import { createWorkspace } from "./workspace.js";
-import { resolveAppConfig } from "./storage.js";
+import { createWorkspace } from "./workspace/index.js";
+import { resolveAppConfig } from "./config.js";
 
 export async function chat(
   userMessage: string,

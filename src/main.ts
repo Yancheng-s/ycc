@@ -3,21 +3,26 @@ import { runCli, handleInit } from "./cli.js";
 
 export { chat } from "./agent.js";
 export { client } from "./client.js";
-export { createWorkspace, findProjectRoot } from "./workspace.js";
 export {
-  getYccHome,
+  createWorkspace,
+  findProjectRoot,
+  resolveInWorkspace,
+  buildSystemPrompt,
   getProjectFingerprint,
   getWorkspaceStorageDir,
   ensureWorkspaceStorage,
-  ensureGlobalStorage,
   saveSession,
   loadSession,
   listSessions,
+} from "./workspace/index.js";
+export {
+  getYccHome,
+  ensureGlobalStorage,
   loadGlobalConfig,
   saveGlobalConfig,
   resolveAppConfig,
   normalizeBaseURL,
-} from "./storage.js";
+} from "./config.js";
 export { runCli, handleInit } from "./cli.js";
 export type {
   Tool,

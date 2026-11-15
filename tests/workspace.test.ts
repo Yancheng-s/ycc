@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { describe, expect, it } from "vitest";
-import { createWorkspace, findProjectRoot } from "../src/workspace.js";
+import { createWorkspace, findProjectRoot, buildSystemPrompt } from "../src/workspace/index.js";
 import type { WorkspaceHooks, Tool } from "../src/types.js";
 
 describe("findProjectRoot", () => {
@@ -97,5 +97,15 @@ describe("createWorkspace", () => {
 
     expect(ws.tools).toEqual([customTool]);
     expect(ws.systemPrompt).toBe("custom prompt");
+  });
+
+  it("buildSystemPrompt 正确组装默认提示词并支持覆盖", () => {
+    const prompt = buildSystemPrompt("C:/my_project");
+    expect(prompt).toContain("C:/my_project");
+    expect(prompt).toContain(os.platform());
+    expect(prompt).toContain("黑板机制");
+
+    const custom = buildSystemPrompt("C:/my_project", "custom text");
+    expect(custom).toBe("custom text");
   });
 });

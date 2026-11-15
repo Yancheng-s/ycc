@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveInWorkspace } from "../src/sandbox.js";
+import { resolveInWorkspace } from "../src/workspace/sandbox.js";
 
 describe("resolveInWorkspace", () => {
   const root = path.resolve("test_workspace");

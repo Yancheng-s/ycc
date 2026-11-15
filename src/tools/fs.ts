@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveInWorkspace } from "../sandbox.js";
+import { resolveInWorkspace } from "../workspace/sandbox.js";
 import type { Tool } from "../types.js";
 
 export function createFsTools(workspaceRoot?: string): Tool[] {

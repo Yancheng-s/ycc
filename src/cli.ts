@@ -2,15 +2,14 @@ import { createInterface } from "node:readline/promises";
 import type OpenAI from "openai";
 import { chat } from "./agent.js";
 import { consoleLogger, createCliGuard } from "./hooks/index.js";
-import { createWorkspace } from "./workspace.js";
+import { createWorkspace, saveSession } from "./workspace/index.js";
 import { resetClient } from "./client.js";
 import {
   ensureGlobalStorage,
   loadGlobalConfig,
   resolveAppConfig,
   saveGlobalConfig,
-  saveSession,
-} from "./storage.js";
+} from "./config.js";
 
 export async function handleInit(
   rl: ReturnType<typeof createInterface>

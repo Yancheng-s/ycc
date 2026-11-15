@@ -2,7 +2,7 @@
 import { runCli, handleInit } from "./cli.js";
 
 export { chat } from "./agent.js";
-export { client } from "./client.js";
+export { client, getClient, getClientForProvider, resetClient } from "./client.js";
 export {
   createWorkspace,
   findProjectRoot,
@@ -20,7 +20,7 @@ export {
   ensureGlobalStorage,
   loadGlobalConfig,
   saveGlobalConfig,
-  resolveAppConfig,
+  resolveProvider,
   normalizeBaseURL,
 } from "./config.js";
 export { runCli, handleInit } from "./cli.js";
@@ -29,6 +29,7 @@ export type {
   Workspace,
   WorkspaceHooks,
   GlobalConfig,
+  ProviderConfig,
   GlobalStorageInfo,
   WorkspaceStorageInfo,
 } from "./types.js";

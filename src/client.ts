@@ -1,26 +1,43 @@
 import OpenAI from "openai";
-import { normalizeBaseURL, resolveAppConfig } from "./config.js";
+import { normalizeBaseURL, resolveProvider } from "./config.js";
 
-let instance: OpenAI | undefined;
+const clientPool = new Map<string, OpenAI>();
 
-export function getClient(): OpenAI {
-  if (instance) {
-    return instance;
+export function getClientForProvider(baseURL: string, apiKey: string): OpenAI {
+  let cleanUrl = normalizeBaseURL(baseURL);
+  if (!cleanUrl) {
+    cleanUrl = "https://api.openai.com/v1";
   }
-  const config = resolveAppConfig();
-  let apiKey = config.apiKey;
-  if (!apiKey) {
-    apiKey = "placeholder-key-until-configured";
+  let effectiveKey = apiKey;
+  if (!effectiveKey) {
+    effectiveKey = "placeholder-key-until-configured";
   }
-  instance = new OpenAI({
-    baseURL: normalizeBaseURL(config.baseURL),
-    apiKey,
-  });
-  return instance;
+  const cacheKey = `${cleanUrl}::${effectiveKey}`;
+  let cached = clientPool.get(cacheKey);
+  if (!cached) {
+    cached = new OpenAI({
+      baseURL: cleanUrl,
+      apiKey: effectiveKey,
+    });
+    clientPool.set(cacheKey, cached);
+  }
+  return cached;
+}
+
+export function getClient(target?: string): OpenAI {
+  try {
+    const provider = resolveProvider(target);
+    return getClientForProvider(provider.baseURL, provider.apiKey);
+  } catch {
+    return getClientForProvider(
+      "https://api.openai.com/v1",
+      "placeholder-key-until-configured"
+    );
+  }
 }
 
 export function resetClient(): void {
-  instance = undefined;
+  clientPool.clear();
 }
 
 export const client = new Proxy({} as OpenAI, {

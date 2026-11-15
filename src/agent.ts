@@ -1,20 +1,28 @@
 import type OpenAI from "openai";
-import { client } from "./client.js";
+import { getClientForProvider } from "./client.js";
 import type { Workspace } from "./types.js";
 import { HookDispatcher } from "./dispatcher.js";
 import { createWorkspace } from "./workspace/index.js";
-import { resolveAppConfig } from "./config.js";
+import { resolveProvider } from "./config.js";
 
 export async function chat(
   userMessage: string,
   history: OpenAI.Chat.ChatCompletionMessageParam[] = [],
-  workspace?: Workspace
+  workspace?: Workspace,
+  targetModel?: string
 ): Promise<string> {
-  const config = resolveAppConfig();
-  const model = config.model;
-  if (!model) {
-    throw new Error("缺少模型配置：请在 ~/.ycc/config.json 中配置 model 或运行 ycc init");
+  let target = targetModel;
+  if (!target && workspace && workspace.model) {
+    target = workspace.model;
   }
+
+  const provider = resolveProvider(target);
+  const model = provider.model;
+  if (!model) {
+    throw new Error("缺少模型配置：当前服务商未配置 model 参数，请检查 ~/.ycc/config.json");
+  }
+
+  const activeClient = getClientForProvider(provider.baseURL, provider.apiKey);
 
   let ws = workspace;
   if (!ws) {
@@ -69,7 +77,7 @@ export async function chat(
 
     dispatcher.onLLMRequest(turns, params);
 
-    const stream = await client.chat.completions.create(params);
+    const stream = await activeClient.chat.completions.create(params);
 
     let accumulatedContent = "";
     const toolCallsMap: Map<number, OpenAI.Chat.ChatCompletionMessageToolCall> = new Map();

@@ -48,6 +48,7 @@ export function createWorkspace(options?: {
   systemPrompt?: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
   maxTurns?: number;
+  model?: string;
 }): Workspace {
   let root = findProjectRoot();
   if (options && options.root) {
@@ -86,6 +87,11 @@ export function createWorkspace(options?: {
     maxTurns = options.maxTurns;
   }
 
+  let model: string | undefined = undefined;
+  if (options && options.model) {
+    model = options.model;
+  }
+
   return {
     root,
     storageDir,
@@ -93,6 +99,7 @@ export function createWorkspace(options?: {
     systemPrompt,
     hooks,
     maxTurns,
+    model,
   };
 }
 

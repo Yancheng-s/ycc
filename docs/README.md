@@ -17,6 +17,7 @@
 | **07** | [人机交互安全守卫与拦截型 Hook](./07-human-in-the-loop-guard.md) | Level 3 守卫型 Hook、一票否决权（beforeToolExecute）、短路拦截、src/hooks 物理隔离 |
 | **08** | [Workspace 容器、沙箱隔离与环境上下文架构](./08-workspace-sandbox-context.md) | 控制反转（IoC）、MUD 房间范式、沙箱防越界守卫、环境即通信总线（黑板模式） |
 | **09** | [非侵入式项目全局持久化与工作区映射架构](./09-workspace-global-storage.md) | 代码库零污染哲学（~/.ycc/）、路径指纹算法（Path Fingerprinting）、会话持久化与草稿区 |
+| **10** | [多模型服务商架构与控制面解耦](./10-multi-provider-architecture.md) | 控制面与数据面分离、current 活跃指针 + providers 字典拓扑、动态客户端连接池、零兼容演进 |
 
 ---
 

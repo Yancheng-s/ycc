@@ -33,12 +33,18 @@ export interface Workspace {
   systemPrompt: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
   maxTurns?: number;
+  model?: string;
+}
+
+export interface ProviderConfig {
+  apiKey: string;
+  baseURL: string;
+  model: string;
 }
 
 export interface GlobalConfig {
-  apiKey?: string;
-  baseURL?: string;
-  model?: string;
+  current?: string;
+  providers?: Record<string, ProviderConfig>;
 }
 
 export interface GlobalStorageInfo {

@@ -26,17 +26,28 @@ vi.mock("openai", () => ({
   },
 }));
 
-let mockAppConfig = {
+let mockProvider = {
+  name: "mock-provider",
   apiKey: "mock-key",
   baseURL: "https://mock.openai.com/v1",
-  model: "gpt-4o-mini" as string | undefined,
+  model: "gpt-4o-mini",
 };
 
 vi.mock("../src/config.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/config.js")>();
   return {
     ...actual,
-    resolveAppConfig: () => mockAppConfig,
+    resolveProvider: (target?: string) => {
+      if (!mockProvider.model) {
+        throw new Error("缺少模型配置：当前服务商未配置 model 参数，请检查 ~/.ycc/config.json");
+      }
+      return {
+        name: target || mockProvider.name,
+        apiKey: mockProvider.apiKey,
+        baseURL: mockProvider.baseURL,
+        model: target ? `model-for-${target}` : mockProvider.model,
+      };
+    },
   };
 });
 
@@ -226,15 +237,15 @@ describe("chat", () => {
   });
 
   it("未设置 model 配置时抛出异常", async () => {
-    const originalModel = mockAppConfig.model;
-    mockAppConfig.model = undefined;
+    const originalModel = mockProvider.model;
+    mockProvider.model = "";
 
     try {
       await expect(askAI("hi")).rejects.toThrow(
-        "缺少模型配置：请在 ~/.ycc/config.json 中配置 model 或运行 ycc init"
+        "缺少模型配置：当前服务商未配置 model 参数，请检查 ~/.ycc/config.json"
       );
     } finally {
-      mockAppConfig.model = originalModel;
+      mockProvider.model = originalModel;
     }
   });
 
@@ -382,7 +393,7 @@ describe("chat", () => {
     expect(onRequest).toHaveBeenCalledTimes(1);
     expect(onRequest).toHaveBeenCalledWith(
       1,
-      expect.objectContaining({ model: mockAppConfig.model, stream: true })
+      expect.objectContaining({ model: mockProvider.model, stream: true })
     );
     expect(onResponse).toHaveBeenCalledTimes(1);
     expect(onResponse).toHaveBeenCalledWith(1, expect.objectContaining({ id: "chatcmpl-test" }));
@@ -590,5 +601,35 @@ describe("chat", () => {
 
     expect(result).toBe("基于工具结果的总结");
     expect(wsTool.execute).toHaveBeenCalled();
+  });
+
+  it("优先使用 targetModel 参数指定的服务商", async () => {
+    mockReplies = [textReply("指定模型回复")];
+    const onRequest = vi.fn();
+    const hooks: WorkspaceHooks = { onLLMRequest: onRequest };
+    const ws = createWorkspace({ hooks, systemPrompt: "", model: "workspace-provider" });
+
+    const result = await askAI("hi", [], ws, "override-provider");
+
+    expect(result).toBe("指定模型回复");
+    expect(onRequest).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ model: "model-for-override-provider" })
+    );
+  });
+
+  it("未传 targetModel 时继承 workspace.model 指定的服务商", async () => {
+    mockReplies = [textReply("继承模型回复")];
+    const onRequest = vi.fn();
+    const hooks: WorkspaceHooks = { onLLMRequest: onRequest };
+    const ws = createWorkspace({ hooks, systemPrompt: "", model: "workspace-provider" });
+
+    const result = await askAI("hi", [], ws);
+
+    expect(result).toBe("继承模型回复");
+    expect(onRequest).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ model: "model-for-workspace-provider" })
+    );
   });
 });

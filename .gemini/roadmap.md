@@ -90,3 +90,14 @@
   - [x] 彻底摒弃 `process.env` 与 `.env`：彻底删除工程本地环境文件，移除代码中所有读取或判断 `process.env.OPENAI_*` 的逻辑，全面以用户目录下的中央配置文件 `~/.ycc/config.json` 为唯一数据源；
   - [x] 领域高内聚收敛重构：拆解平铺的 `storage.ts`、`workspace.ts` 与 `sandbox.ts`，独立出管理全局凭证的 `src/config.ts`，并将沙箱（`sandbox.ts`）、上下文工程（`context.ts`）、专属抽屉（`storage.ts`）与装配工厂（`index.ts`）统一收敛至 `src/workspace/` 领域目录，全量 73 个测试用例 100% 变绿通过；
   - [x] 践行文档全生命周期治理：新增 `docs/09-workspace-global-storage.md`，更新知识库索引与系统全景图。
+- [x] **阶段 13：多模型服务商架构与控制面解耦（Multi-Model Provider Architecture & Control Plane Decoupling）**
+  - [x] 架构调研与业界对齐：参考 OpenClaw、Claude Code 与 Codex 架构，确立控制面（CLI/UI）与数据面（运行时引擎）彻底解耦范式；
+  - [x] 彻底重构配置文件拓扑：在 `~/.ycc/config.json` 确立 `current` 活跃指针 + `providers` 字典结构，杜绝平铺配置相互覆盖；
+  - [x] 类型契约演进：在 `src/types.ts` 定义 `ProviderConfig` 与 `GlobalConfig`，并在 `Workspace` 挂载 `model?: string`；
+  - [x] 配置解析与优先级路由：在 `src/config.ts` 实现 `resolveProvider(target)`，支持 `CLI --model` > `workspace.model` > `config.current` 优先级链；
+  - [x] 客户端动态池化：在 `src/client.ts` 实现 `clientPool = new Map<string, OpenAI>()`，基于 `${baseURL}::${apiKey}` 缓存并复用 HTTP 连接；
+  - [x] Agent 引擎动态路由：`src/agent.ts` 的 `chat` 支持根据传入的 `targetModel` 动态加载对应 Client 与模型名称；
+  - [x] 终端交互控制面升级：在 `src/cli.ts` 扩充 `-m` / `--model <name>` 参数解析，优化 `ycc init` 交互引导为服务商多配置录入；
+  - [x] 零向下兼容与纯粹性重构：坚决不保留 `resolveAppConfig` 等历史垫片，代码 0 注释，全工程严格杜绝 `??` 运算符；
+  - [x] 全量测试绿灯保障：更新 `tests/storage.test.ts` 与 `tests/agent.test.ts`，9 个测试文件、75 个用例 100% 变绿通过；
+  - [x] 践行文档治理：新增 `docs/10-multi-provider-architecture.md`，更新知识库索引。

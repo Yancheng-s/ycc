@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { GlobalConfig, GlobalStorageInfo } from "./types.js";
+import type { GlobalConfig, GlobalStorageInfo, ProviderConfig } from "./types.js";
 
 export function getYccHome(): string {
   return path.join(os.homedir(), ".ycc");
@@ -19,9 +19,14 @@ export function ensureGlobalStorage(): GlobalStorageInfo {
   if (!fs.existsSync(configPath)) {
     isFirstRun = true;
     const template: GlobalConfig = {
-      apiKey: "",
-      baseURL: "https://api.openai.com/v1",
-      model: "gpt-4o",
+      current: "default",
+      providers: {
+        default: {
+          apiKey: "",
+          baseURL: "https://api.openai.com/v1",
+          model: "gpt-4o",
+        },
+      },
     };
     fs.writeFileSync(configPath, JSON.stringify(template, null, 2), "utf-8");
   }
@@ -68,19 +73,78 @@ export function saveGlobalConfig(config: GlobalConfig): void {
   const home = getYccHome();
   fs.mkdirSync(home, { recursive: true });
   const configPath = path.join(home, "config.json");
-  const normalizedConfig: GlobalConfig = {
-    apiKey: config.apiKey,
-    baseURL: normalizeBaseURL(config.baseURL),
-    model: config.model,
+
+  const cleanProviders: Record<string, ProviderConfig> = {};
+  if (config.providers) {
+    for (const [key, val] of Object.entries(config.providers)) {
+      if (val && typeof val === "object") {
+        let cleanUrl = normalizeBaseURL(val.baseURL);
+        if (!cleanUrl) {
+          cleanUrl = "https://api.openai.com/v1";
+        }
+        cleanProviders[key] = {
+          apiKey: val.apiKey || "",
+          baseURL: cleanUrl,
+          model: val.model || "",
+        };
+      }
+    }
+  }
+
+  let activeCurrent = config.current;
+  if (!activeCurrent) {
+    const keys = Object.keys(cleanProviders);
+    if (keys.length > 0) {
+      activeCurrent = keys[0];
+    } else {
+      activeCurrent = "default";
+    }
+  }
+
+  const normalized: GlobalConfig = {
+    current: activeCurrent,
+    providers: cleanProviders,
   };
-  fs.writeFileSync(configPath, JSON.stringify(normalizedConfig, null, 2), "utf-8");
+
+  fs.writeFileSync(configPath, JSON.stringify(normalized, null, 2), "utf-8");
 }
 
-export function resolveAppConfig(): GlobalConfig {
-  const globalConfig = loadGlobalConfig();
+export function resolveProvider(target?: string): {
+  name: string;
+  apiKey: string;
+  baseURL: string;
+  model: string;
+} {
+  const config = loadGlobalConfig();
+  let activeName = target;
+  if (!activeName) {
+    activeName = config.current;
+  }
+  if (!activeName && config.providers) {
+    const keys = Object.keys(config.providers);
+    if (keys.length > 0) {
+      activeName = keys[0];
+    }
+  }
+
+  if (!activeName) {
+    throw new Error("缺少模型服务商配置：请运行 ycc init 配置大模型凭据");
+  }
+
+  if (!config.providers || !config.providers[activeName]) {
+    throw new Error(`未找到名为 [${activeName}] 的模型服务商配置，请检查 ~/.ycc/config.json 或运行 ycc init`);
+  }
+
+  const provider = config.providers[activeName];
+  let cleanUrl = normalizeBaseURL(provider.baseURL);
+  if (!cleanUrl) {
+    cleanUrl = "https://api.openai.com/v1";
+  }
+
   return {
-    apiKey: globalConfig.apiKey,
-    baseURL: normalizeBaseURL(globalConfig.baseURL),
-    model: globalConfig.model,
+    name: activeName,
+    apiKey: provider.apiKey || "",
+    baseURL: cleanUrl,
+    model: provider.model || "",
   };
 }

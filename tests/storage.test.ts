@@ -7,7 +7,7 @@ import {
   getYccHome,
   loadGlobalConfig,
   normalizeBaseURL,
-  resolveAppConfig,
+  resolveProvider,
   saveGlobalConfig,
 } from "../src/config.js";
 import {
@@ -63,8 +63,10 @@ describe("storage", () => {
 
     const raw = await fs.readFile(info.configPath, "utf-8");
     const cfg = JSON.parse(raw);
-    expect(cfg.apiKey).toBe("");
-    expect(cfg.baseURL).toBe("https://api.openai.com/v1");
+    expect(cfg.current).toBe("default");
+    expect(cfg.providers.default.apiKey).toBe("");
+    expect(cfg.providers.default.baseURL).toBe("https://api.openai.com/v1");
+    expect(cfg.providers.default.model).toBe("gpt-4o");
 
     const info2 = ensureGlobalStorage();
     expect(info2.isFirstRun).toBe(false);
@@ -112,13 +114,18 @@ describe("storage", () => {
     expect(sessions).toEqual(["another_session", "test_session"]);
   });
 
-  it("loadGlobalConfig 与 saveGlobalConfig 读写全局配置", () => {
+  it("loadGlobalConfig 与 saveGlobalConfig 读写全局多服务商配置", () => {
     expect(loadGlobalConfig()).toEqual({});
 
     const config = {
-      apiKey: "test_key",
-      baseURL: "https://api.test.com",
-      model: "test_model",
+      current: "spark",
+      providers: {
+        spark: {
+          apiKey: "test_key",
+          baseURL: "https://api.test.com",
+          model: "test_model",
+        },
+      },
     };
     saveGlobalConfig(config);
     expect(loadGlobalConfig()).toEqual(config);
@@ -138,11 +145,21 @@ describe("storage", () => {
     expect(normalizeBaseURL(undefined)).toBeUndefined();
   });
 
-  it("resolveAppConfig 全面走全局配置文件，忽略 process.env", () => {
+  it("resolveProvider 遵循当前激活服务商与临时指定优先级，忽略 process.env", () => {
     saveGlobalConfig({
-      apiKey: "global_key",
-      baseURL: "https://global.test.com",
-      model: "global_model",
+      current: "spark",
+      providers: {
+        spark: {
+          apiKey: "spark_key",
+          baseURL: "https://spark.test.com",
+          model: "spark_model",
+        },
+        deepseek: {
+          apiKey: "deepseek_key",
+          baseURL: "https://deepseek.test.com",
+          model: "deepseek_model",
+        },
+      },
     });
 
     const origKey = process.env.OPENAI_API_KEY;
@@ -154,10 +171,19 @@ describe("storage", () => {
     process.env.OPENAI_MODEL = "env_override_model";
 
     try {
-      const resolved = resolveAppConfig();
-      expect(resolved.apiKey).toBe("global_key");
-      expect(resolved.baseURL).toBe("https://global.test.com");
-      expect(resolved.model).toBe("global_model");
+      const defaultResolved = resolveProvider();
+      expect(defaultResolved.name).toBe("spark");
+      expect(defaultResolved.apiKey).toBe("spark_key");
+      expect(defaultResolved.baseURL).toBe("https://spark.test.com");
+      expect(defaultResolved.model).toBe("spark_model");
+
+      const specifiedResolved = resolveProvider("deepseek");
+      expect(specifiedResolved.name).toBe("deepseek");
+      expect(specifiedResolved.apiKey).toBe("deepseek_key");
+      expect(specifiedResolved.baseURL).toBe("https://deepseek.test.com");
+      expect(specifiedResolved.model).toBe("deepseek_model");
+
+      expect(() => resolveProvider("not_found")).toThrow("未找到名为 [not_found]");
     } finally {
       if (origKey !== undefined) {
         process.env.OPENAI_API_KEY = origKey;

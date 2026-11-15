@@ -5,6 +5,7 @@ import type { WorkspaceHooks, Tool, Workspace } from "./types.js";
 import { timeTool } from "./tools/time.js";
 import { createShellTool } from "./tools/shell.js";
 import { createFsTools } from "./tools/fs.js";
+import { ensureWorkspaceStorage } from "./storage.js";
 
 export function findProjectRoot(startDir: string = process.cwd()): string {
   const home = path.resolve(os.homedir());
@@ -33,6 +34,7 @@ export function findProjectRoot(startDir: string = process.cwd()): string {
 
 export function createWorkspace(options?: {
   root?: string;
+  storageDir?: string;
   tools?: Tool[];
   systemPrompt?: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
@@ -41,6 +43,13 @@ export function createWorkspace(options?: {
   let root = findProjectRoot();
   if (options && options.root) {
     root = path.resolve(options.root);
+  }
+
+  let storageDir = "";
+  if (options && options.storageDir) {
+    storageDir = path.resolve(options.storageDir);
+  } else {
+    storageDir = ensureWorkspaceStorage(root).storageDir;
   }
 
   let tools: Tool[] = [];
@@ -75,6 +84,7 @@ export function createWorkspace(options?: {
 
   return {
     root,
+    storageDir,
     tools,
     systemPrompt,
     hooks,

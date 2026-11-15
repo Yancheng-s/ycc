@@ -26,12 +26,19 @@ vi.mock("openai", () => ({
   },
 }));
 
-if (!process.env.OPENAI_MODEL) {
-  process.env.OPENAI_MODEL = "gpt-4o-mini";
-}
-if (!process.env.OPENAI_API_KEY) {
-  process.env.OPENAI_API_KEY = "mock-key";
-}
+let mockAppConfig = {
+  apiKey: "mock-key",
+  baseURL: "https://mock.openai.com/v1",
+  model: "gpt-4o-mini" as string | undefined,
+};
+
+vi.mock("../src/storage.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/storage.js")>();
+  return {
+    ...actual,
+    resolveAppConfig: () => mockAppConfig,
+  };
+});
 
 import { chat as askAI } from "../src/agent.js";
 import type { Tool, WorkspaceHooks, Workspace } from "../src/types.js";
@@ -218,16 +225,16 @@ describe("chat", () => {
     expect(history[3]).toEqual({ role: "assistant", content: "你的名字是张三。" });
   });
 
-  it("未设置 OPENAI_MODEL 时抛出异常", async () => {
-    const originalModel = process.env.OPENAI_MODEL;
-    delete process.env.OPENAI_MODEL;
+  it("未设置 model 配置时抛出异常", async () => {
+    const originalModel = mockAppConfig.model;
+    mockAppConfig.model = undefined;
 
     try {
       await expect(askAI("hi")).rejects.toThrow(
-        "缺少模型配置：请在环境变量中设置 OPENAI_MODEL"
+        "缺少模型配置：请在 ~/.ycc/config.json 中配置 model 或运行 ycc init"
       );
     } finally {
-      process.env.OPENAI_MODEL = originalModel;
+      mockAppConfig.model = originalModel;
     }
   });
 
@@ -373,7 +380,10 @@ describe("chat", () => {
 
     expect(result).toBe("hook测试回复");
     expect(onRequest).toHaveBeenCalledTimes(1);
-    expect(onRequest).toHaveBeenCalledWith(1, expect.objectContaining({ model: process.env.OPENAI_MODEL, stream: true }));
+    expect(onRequest).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ model: mockAppConfig.model, stream: true })
+    );
     expect(onResponse).toHaveBeenCalledTimes(1);
     expect(onResponse).toHaveBeenCalledWith(1, expect.objectContaining({ id: "chatcmpl-test" }));
   });

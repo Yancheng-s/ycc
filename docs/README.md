@@ -16,6 +16,7 @@
 | **06** | [流式传输与数据碎片组装](./06-streaming-chunk-assembly.md) | Server-Sent Events 流式迭代、文本打字机与工具 JSON 碎片双轨处理、多端解耦 |
 | **07** | [人机交互安全守卫与拦截型 Hook](./07-human-in-the-loop-guard.md) | Level 3 守卫型 Hook、一票否决权（beforeToolExecute）、短路拦截、src/hooks 物理隔离 |
 | **08** | [Workspace 容器、沙箱隔离与环境上下文架构](./08-workspace-sandbox-context.md) | 控制反转（IoC）、MUD 房间范式、沙箱防越界守卫、环境即通信总线（黑板模式） |
+| **09** | [非侵入式项目全局持久化与工作区映射架构](./09-workspace-global-storage.md) | 代码库零污染哲学（~/.ycc/）、路径指纹算法（Path Fingerprinting）、会话持久化与草稿区 |
 
 ---
 

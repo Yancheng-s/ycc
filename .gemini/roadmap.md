@@ -12,7 +12,8 @@
 3. **测试为安全绳**：功能模块变动必同步写/改测试，变动后必须执行全量回归测试（`npm test`），保证行为不退化。
 4. **编码规范严格遵守**：
    - 不生成冗余解释性注释，代码自解释；
-   - 禁止使用 `??` 空值合并运算符做隐式兜底，异常与缺失必须显式前置校验。
+   - 禁止使用 `??` 空值合并运算符做隐式兜底，异常与缺失必须显式前置校验；
+   - 修改代码保持简洁彻底，坚决不做过度谨慎的“向下兼容旧代码”，绝不保留多余的垫片（Shim）、历史别名与过渡重导出层。
 
 ---
 
@@ -76,3 +77,15 @@
   - [x] 契约命名对齐：将 AgentHooks 全局统一重命名为 WorkspaceHooks，彻底消除主谓倒置遗留；
   - [x] 智能根目录探测：实现 `findProjectRoot` 向上回溯算法与用户家目录天花板保护，避免深层子目录执行时上下文受限；
   - [x] 8 个测试套件、62 个契约用例 100% 变绿通过（含 1 个跳过的 live API 用例）。
+- [x] **阶段 12：非侵入式项目全局持久化与工作区映射（Global Non-Intrusive Storage in `~/.ycc/`）**
+  - [x] 确定零污染架构设计哲学（方案 B），代码库内绝不写入点号配置文件；
+  - [x] 建立 `src/storage.ts` 存储子系统，确立 `~/.ycc/` 全局存储根目录，生产代码 100% 消除 `process.env`；
+  - [x] 实现项目路径指纹算法 `getProjectFingerprint`（大小写不敏感 SHA-256 + 人类可读 slug 抽屉名）；
+  - [x] 确立项目物理抽屉结构（`meta.json`、`sessions/`、`scratch/`），实现原子化更新 `ensureWorkspaceStorage`；
+  - [x] 扩展 `Workspace` 契约，自动挂载与注入 `storageDir` 属性；
+  - [x] 实现会话持久化与恢复 API（`saveSession`, `loadSession`, `listSessions`），在 CLI 中集成无感自动归档；
+  - [x] 新增 `tests/storage.test.ts` 单元测试套件，9 个测试文件、71 个用例 100% 变绿通过；
+  - [x] 全局命令分发与打包：配置 `package.json` 的 `bin: { ycc: "./dist/main.js" }`，支持全局 `npm link` 与生产打包编译（`tsconfig.build.json`）；
+  - [x] 交互式配置向导：实现 `ycc init` 交互式覆盖配置与 `ycc up` / `ycc run` 自动预检、缺失时内联向导并无缝直接启动；
+  - [x] 彻底摒弃 `process.env` 与 `.env`：彻底删除工程本地环境文件，移除代码中所有读取或判断 `process.env.OPENAI_*` 的逻辑，全面以用户目录下的中央配置文件 `~/.ycc/config.json` 为唯一数据源；
+  - [x] 践行文档全生命周期治理：新增 `docs/09-workspace-global-storage.md`，更新知识库索引与系统全景图。

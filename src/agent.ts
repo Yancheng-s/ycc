@@ -3,15 +3,17 @@ import { client } from "./client.js";
 import type { Workspace } from "./types.js";
 import { HookDispatcher } from "./dispatcher.js";
 import { createWorkspace } from "./workspace.js";
+import { resolveAppConfig } from "./storage.js";
 
 export async function chat(
   userMessage: string,
   history: OpenAI.Chat.ChatCompletionMessageParam[] = [],
   workspace?: Workspace
 ): Promise<string> {
-  const model = process.env.OPENAI_MODEL;
+  const config = resolveAppConfig();
+  const model = config.model;
   if (!model) {
-    throw new Error("缺少模型配置：请在环境变量中设置 OPENAI_MODEL");
+    throw new Error("缺少模型配置：请在 ~/.ycc/config.json 中配置 model 或运行 ycc init");
   }
 
   let ws = workspace;

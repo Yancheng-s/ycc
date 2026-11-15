@@ -28,8 +28,29 @@ export interface WorkspaceHooks {
 
 export interface Workspace {
   root: string;
+  storageDir?: string;
   tools: Tool[];
   systemPrompt: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
   maxTurns?: number;
+}
+
+export interface GlobalConfig {
+  apiKey?: string;
+  baseURL?: string;
+  model?: string;
+}
+
+export interface GlobalStorageInfo {
+  homeDir: string;
+  configPath: string;
+  workspacesDir: string;
+  isFirstRun: boolean;
+}
+
+export interface WorkspaceStorageInfo {
+  storageDir: string;
+  metaPath: string;
+  sessionsDir: string;
+  scratchDir: string;
 }

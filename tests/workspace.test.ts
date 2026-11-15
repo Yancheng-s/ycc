@@ -44,6 +44,16 @@ describe("createWorkspace", () => {
     expect(ws.root).toBe(path.resolve(customRelative));
   });
 
+  it("默认初始化专属的全局 storageDir 并支持自定义覆盖", () => {
+    const ws = createWorkspace();
+    expect(ws.storageDir).toBeDefined();
+    expect(typeof ws.storageDir).toBe("string");
+
+    const customStorage = path.resolve("custom_storage");
+    const wsCustom = createWorkspace({ storageDir: customStorage });
+    expect(wsCustom.storageDir).toBe(customStorage);
+  });
+
   it("动态生成包含操作系统与根路径的环境上下文 System Prompt", () => {
     const customRoot = path.resolve("my_project");
     const ws = createWorkspace({ root: customRoot });

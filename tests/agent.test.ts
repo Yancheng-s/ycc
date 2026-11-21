@@ -354,6 +354,7 @@ describe("chat", () => {
           arguments: "{}",
         },
       ]),
+      textReply("循环调用已结束并给出答案"),
     ];
 
     const loopTool: Tool = {
@@ -366,10 +367,11 @@ describe("chat", () => {
     const result = await askAI(
       "一直调工具",
       history,
-      createWorkspace({ tools: [loopTool], maxTurns: 2, systemPrompt: "" })
+      createWorkspace({ tools: [loopTool], systemPrompt: "" })
     );
 
-    expect(result).toBe("已达到最大执行轮数上限");
+    expect(result).toBe("循环调用已结束并给出答案");
+    expect(history.length).toBe(6);
   });
 
   it("触发生命周期 Hook 回调 (onLLMRequest 与 onLLMResponse)", async () => {
@@ -392,11 +394,10 @@ describe("chat", () => {
     expect(result).toBe("hook测试回复");
     expect(onRequest).toHaveBeenCalledTimes(1);
     expect(onRequest).toHaveBeenCalledWith(
-      1,
       expect.objectContaining({ model: mockProvider.model, stream: true })
     );
     expect(onResponse).toHaveBeenCalledTimes(1);
-    expect(onResponse).toHaveBeenCalledWith(1, expect.objectContaining({ id: "chatcmpl-test" }));
+    expect(onResponse).toHaveBeenCalledWith(expect.objectContaining({ id: "chatcmpl-test" }));
   });
 
   it("执行工具时触发 onToolExecute Hook", async () => {
@@ -613,7 +614,6 @@ describe("chat", () => {
 
     expect(result).toBe("指定模型回复");
     expect(onRequest).toHaveBeenCalledWith(
-      1,
       expect.objectContaining({ model: "model-for-override-provider" })
     );
   });
@@ -628,7 +628,6 @@ describe("chat", () => {
 
     expect(result).toBe("继承模型回复");
     expect(onRequest).toHaveBeenCalledWith(
-      1,
       expect.objectContaining({ model: "model-for-workspace-provider" })
     );
   });

@@ -6,7 +6,7 @@ import { timeTool } from "../tools/time.js";
 import { createShellTool } from "../tools/shell.js";
 import { createFsTools } from "../tools/fs.js";
 import { resolveInWorkspace } from "./sandbox.js";
-import { buildSystemPrompt } from "./context.js";
+import { buildSystemPrompt, assembleContext } from "./context.js";
 import {
   ensureWorkspaceStorage,
   getProjectFingerprint,
@@ -47,7 +47,6 @@ export function createWorkspace(options?: {
   tools?: Tool[];
   systemPrompt?: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
-  maxTurns?: number;
   model?: string;
 }): Workspace {
   let root = findProjectRoot();
@@ -82,11 +81,6 @@ export function createWorkspace(options?: {
     hooks = options.hooks;
   }
 
-  let maxTurns = 5;
-  if (options && options.maxTurns !== undefined) {
-    maxTurns = options.maxTurns;
-  }
-
   let model: string | undefined = undefined;
   if (options && options.model) {
     model = options.model;
@@ -98,7 +92,6 @@ export function createWorkspace(options?: {
     tools,
     systemPrompt,
     hooks,
-    maxTurns,
     model,
   };
 }
@@ -106,6 +99,7 @@ export function createWorkspace(options?: {
 export {
   resolveInWorkspace,
   buildSystemPrompt,
+  assembleContext,
   getProjectFingerprint,
   getWorkspaceStorageDir,
   ensureWorkspaceStorage,

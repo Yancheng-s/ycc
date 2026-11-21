@@ -9,11 +9,10 @@ export interface Tool {
 
 export interface WorkspaceHooks {
   onLLMRequest?: (
-    turn: number,
     params: OpenAI.Chat.ChatCompletionCreateParamsStreaming
   ) => void;
   onStreamChunk?: (chunk: OpenAI.Chat.ChatCompletionChunk) => void;
-  onLLMResponse?: (turn: number, response: OpenAI.Chat.ChatCompletion) => void;
+  onLLMResponse?: (response: OpenAI.Chat.ChatCompletion) => void;
   beforeToolExecute?: (
     name: string,
     args: Record<string, unknown>
@@ -32,7 +31,6 @@ export interface Workspace {
   tools: Tool[];
   systemPrompt: string;
   hooks?: WorkspaceHooks | WorkspaceHooks[];
-  maxTurns?: number;
   model?: string;
 }
 

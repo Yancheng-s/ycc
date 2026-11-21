@@ -15,12 +15,11 @@ export class HookDispatcher {
   }
 
   onLLMRequest(
-    turn: number,
     params: OpenAI.Chat.ChatCompletionCreateParamsStreaming
   ): void {
     for (const h of this.handlers) {
       if (h.onLLMRequest) {
-        h.onLLMRequest(turn, params);
+        h.onLLMRequest(params);
       }
     }
   }
@@ -34,12 +33,11 @@ export class HookDispatcher {
   }
 
   onLLMResponse(
-    turn: number,
     response: OpenAI.Chat.ChatCompletion
   ): void {
     for (const h of this.handlers) {
       if (h.onLLMResponse) {
-        h.onLLMResponse(turn, response);
+        h.onLLMResponse(response);
       }
     }
   }

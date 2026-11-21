@@ -1,13 +1,13 @@
 import type { WorkspaceHooks } from "../types.js";
 
 export const consoleLogger: WorkspaceHooks = {
-  onLLMRequest: (turn, params) => {
+  onLLMRequest: (params) => {
     console.log("\n──────────────────────────────────────────────────");
-    console.log(`[第 ${turn} 轮 · 请求大模型]`);
+    console.log("[请求大模型]");
     console.log("--- 发送完整请求参数 (Request Payload) ---");
     console.log(JSON.stringify(params, null, 2));
   },
-  onLLMResponse: (_turn, res) => {
+  onLLMResponse: (res) => {
     console.log("--- 接收完整响应报文 (Response Payload) ---");
     console.log(JSON.stringify(res, null, 2));
     const firstChoice = res.choices[0];

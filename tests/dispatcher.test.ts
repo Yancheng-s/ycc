@@ -34,9 +34,9 @@ describe("HookDispatcher", () => {
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     };
 
-    expect(() => dispatcher.onLLMRequest(1, params)).not.toThrow();
+    expect(() => dispatcher.onLLMRequest(params)).not.toThrow();
     expect(() => dispatcher.onStreamChunk(sampleChunk)).not.toThrow();
-    expect(() => dispatcher.onLLMResponse(1, res)).not.toThrow();
+    expect(() => dispatcher.onLLMResponse(res)).not.toThrow();
     expect(() =>
       dispatcher.onToolExecute("test", {}, "ok", "call-1")
     ).not.toThrow();
@@ -69,14 +69,14 @@ describe("HookDispatcher", () => {
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     };
 
-    dispatcher.onLLMRequest(1, params);
+    dispatcher.onLLMRequest(params);
     dispatcher.onStreamChunk(sampleChunk);
-    dispatcher.onLLMResponse(1, res);
+    dispatcher.onLLMResponse(res);
     dispatcher.onToolExecute("demo", { a: 1 }, "res", "id-1");
 
-    expect(onRequest).toHaveBeenCalledWith(1, params);
+    expect(onRequest).toHaveBeenCalledWith(params);
     expect(onChunk).toHaveBeenCalledWith(sampleChunk);
-    expect(onResponse).toHaveBeenCalledWith(1, res);
+    expect(onResponse).toHaveBeenCalledWith(res);
     expect(onTool).toHaveBeenCalledWith("demo", { a: 1 }, "res", "id-1");
   });
 

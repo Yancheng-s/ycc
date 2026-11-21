@@ -2,7 +2,7 @@ import type OpenAI from "openai";
 import { getClientForProvider } from "./client.js";
 import type { Workspace } from "./types.js";
 import { HookDispatcher } from "./dispatcher.js";
-import { createWorkspace } from "./workspace/index.js";
+import { createWorkspace, assembleContext } from "./workspace/index.js";
 import { resolveProvider } from "./config.js";
 
 export async function chat(
@@ -41,21 +41,15 @@ export async function chat(
 
   history.push({ role: "user", content: userMessage });
 
-  let maxTurns = 5;
-  if (ws.maxTurns !== undefined) {
-    maxTurns = ws.maxTurns;
-  }
-
   const toolList = ws.tools;
   const dispatcher = new HookDispatcher(ws.hooks);
 
-  let turns = 0;
-  while (turns < maxTurns) {
-    turns += 1;
+  while (true) {
+    const messages = assembleContext(history, ws.systemPrompt);
 
     const params: OpenAI.Chat.ChatCompletionCreateParamsStreaming = {
       model,
-      messages: history,
+      messages,
       stream: true,
     };
 
@@ -75,7 +69,7 @@ export async function chat(
       });
     }
 
-    dispatcher.onLLMRequest(turns, params);
+    dispatcher.onLLMRequest(params);
 
     const stream = await activeClient.chat.completions.create(params);
 
@@ -167,7 +161,7 @@ export async function chat(
       },
     };
 
-    dispatcher.onLLMResponse(turns, assembledResponse);
+    dispatcher.onLLMResponse(assembledResponse);
 
     if (hasToolCalls) {
       const assistantMsg: OpenAI.Chat.ChatCompletionAssistantMessageParam = {
@@ -224,6 +218,4 @@ export async function chat(
     history.push({ role: "assistant", content: accumulatedContent });
     return accumulatedContent;
   }
-
-  return "已达到最大执行轮数上限";
 }

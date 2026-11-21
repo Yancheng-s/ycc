@@ -3,7 +3,7 @@ import { consoleLogger } from "../src/hooks/logger.js";
 import type OpenAI from "openai";
 
 describe("consoleLogger", () => {
-  it("onLLMRequest 格式化输出轮数和请求参数", () => {
+  it("onLLMRequest 格式化输出请求参数", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const params: OpenAI.Chat.ChatCompletionCreateParamsStreaming = {
@@ -13,10 +13,10 @@ describe("consoleLogger", () => {
     };
 
     if (consoleLogger.onLLMRequest) {
-      consoleLogger.onLLMRequest(1, params);
+      consoleLogger.onLLMRequest(params);
     }
 
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining("第 1 轮 · 请求大模型"));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("[请求大模型]"));
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("gpt-4o-mini"));
     spy.mockRestore();
   });
@@ -69,7 +69,7 @@ describe("consoleLogger", () => {
     };
 
     if (consoleLogger.onLLMResponse) {
-      consoleLogger.onLLMResponse(1, res);
+      consoleLogger.onLLMResponse(res);
     }
 
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("接收完整响应报文"));
